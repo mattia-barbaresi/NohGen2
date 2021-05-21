@@ -83,23 +83,21 @@ def dot_product(arr, brr):
 
 
 def angle_from_vector(arr, brr):
-    if len(arr) == len(brr) == 0:
+    angle = math.pi
+    if sum(arr) == sum(brr) == 0:
         return 0  # empty arrays are equal
 
     # Stores dot product of two vectors
     dp = dot_product(arr, brr)
-
-    # Stores magnitude of vector A
-    magnitude_a = magnitude(arr)
-
-    # Stores magnitude of vector B
-    magnitude_b = magnitude(brr)
-
+    # Stores magnitude
+    mag = magnitude(arr) * magnitude(brr)
+    if mag == 0:
+        return math.pi  # return max distance
     # Stores angle between given vectors
-    val = dp / (magnitude_a * magnitude_b)
+    val = dp / mag
     # round error fix
-    if 1 - val <= 0.0001:
-        val = 1
+    if (1.0 - val) <= 0.0001:
+        val = 1.0
     angle = math.acos(val)
 
     # Print the angle
@@ -107,9 +105,18 @@ def angle_from_vector(arr, brr):
     return angle
 
 
-def angle_from_dict(dict_a, dict_b):
+def create_coords(a_dict, dims):
+    res = []
+    for x in dims:
+        if x in a_dict:
+            res.append(int(a_dict[x]))
+        else:
+            res.append(0)
+    return res
+
+
+def angle_from_dict(dict_a, dict_b, coord):
     # if contexts have same values, calculate angle
-    if np.array_equal(dict_a.keys(),dict_b.keys()):
-        return angle_from_vector(list(dict_a.values()),list(dict_b.values()))
-    else:
-        return math.pi
+    val_a = create_coords(dict_a, coord)
+    val_b = create_coords(dict_b, coord)
+    return angle_from_vector(val_a, val_b)

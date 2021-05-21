@@ -3,7 +3,7 @@ import json
 import random
 import numpy as np
 import pprint
-import form_class as fc
+from markov import form_class as fc
 from collections import OrderedDict
 
 pp = pprint.PrettyPrinter(indent=2)
@@ -29,7 +29,7 @@ class Params:
     def __init__(self):
         pass
 
-    TSH = 0.5
+    TSH = 0.85
 
 
 # sort key selector function
@@ -92,7 +92,7 @@ def markov_trans_occ(seqs, order_limit=6):
             # read and count n-grams in sequences
             for _ind in zip(*[arr[_x:] for _x in range(order + 1)]):
                 val = " ".join(str(e) for e in _ind)
-                val = val.strip()
+                val = val.strip(" ")
                 if val in m:
                     m[val] = m[val] + 1
                 else:
@@ -267,7 +267,7 @@ def detect_transitions(sequences, mtp):
 
 
 # chunking sequences
-def chunk_sequences(seqs, mtp, ord_max=6):
+def chunk_sequences(seqs, mtp, orders=[2,3]):
     """
     Returns segments/chunks of seqs extracted using mtp transitions
 
@@ -279,12 +279,12 @@ def chunk_sequences(seqs, mtp, ord_max=6):
         list of sequences to analyze
     mtp : dict
         the transitional probabilities dictionary
-    ord_max : int
-        max level/order in dict
+    orders : list
+        orders in dict
     """
     cl = dict()
     # cl = set()
-    for order in range(1, ord_max):  # ignore 0th-order
+    for order in orders:  # ignore 0th-order
         cl[order] = set()
         i = 0
         for x in mtp[order]:
@@ -341,7 +341,7 @@ def chunk_sequences_only_sure(seqs, mtp, ord_max=6):
                     if len(cks.strip(" ").split(" ")) > 1:
                         cks = cks.strip(" ")
                         if cks.strip(" ") == "f":
-                            print ("m")
+                            print("m")
                         cl[order].add(cks)
                         # cl.add(cks)
                     # start new chunk
@@ -539,6 +539,52 @@ def generate(tps, n_seq, occ_per_seq=16):
     return res
 
 
+# generate using n-order markov transitions and weights for markov orders
+def generate_with_weights(tps, weights, voc=[], n_seq=1, occ_per_seq=16, start_pool=[]):
+    res = []
+    # generate n_seq sequences
+    for _ns in range(0, n_seq):
+        # start symbol
+        if start_pool:
+            str_res = random.choice(list(start_pool))
+        else:
+            str_res = mc_choice_dict(tps[0])
+        # all other symbols
+        # generate occ_per_seq symbols (per sequence)
+        trans = str_res
+        if voc:
+            trans = translate_sequence(str_res,voc)
+        while len(trans.split(" ")) < occ_per_seq:
+            # pick out the order
+            order = mc_choice(weights)
+            if order == 0:
+                # if order = 0 pick out a random symbol
+                str_res += " " + mc_choice_dict(tps[0])
+            else:
+                # no further transition
+                # cut first symbol and search for the order-1 transition
+                i = 0
+                # pick out the right history (past length due to choosen order)
+                sid = " ".join(str_res.split(" ")[-order:])
+                while i < order and (sid not in tps[order - i].keys()):
+                    i += 1
+                    sid = " ".join(sid.split(" ")[-(order-i):])
+                if sid and (order - i > 0):
+                    val = tps[order - i][sid]
+                    idx = mc_choice(list(val.values()))
+                    str_res += " " + list(val.keys())[idx]
+                else:
+                    # choose a symbol of the 0-th level
+                    idx = mc_choice(list(tps[0].values()))
+                    val = list(tps[0].keys())[idx]
+                    str_res += " " + val
+            trans = str_res
+            if voc:
+                trans = translate_sequence(str_res, voc)
+        res.append(str_res)
+    return res
+
+
 # convert symbols in sequences using vocabulary
 def translate(sequences, vocabulary):
     res = dict()
@@ -548,6 +594,14 @@ def translate(sequences, vocabulary):
             tks = [int(x) for x in seq.split(" ")]
             sym = " ".join(np.array(vocabulary)[tks])
             res[itm[0]].append(sym)
+    return res
+
+
+def translate_sequence(sequence, vocabulary):
+    res = ""
+    tks = [int(x) for x in sequence.split(" ")]
+    sym = " ".join(np.array(vocabulary)[tks])
+    res += sym
     return res
 
 
@@ -563,47 +617,130 @@ def serialize_sets(obj):
     return obj
 
 
+def create_generation_model(seqs):
+    cto = markov_trans_occ(seqs)
+    m = dict()
+    t_tot = 0
+    for itm1 in cto.items():
+        if itm1[0] > 0:
+            # higher orders
+            for itm2 in itm1[1].items():
+                vec = itm2[0].split(" ")
+                curr = vec[-1]
+                if curr not in m:
+                    m[curr] = dict()
+                past = ""
+                if len(vec) > 1:
+                    past = " ".join(vec[:-1])
+                m[curr][past] = dict()
+                tot = sum(itm2[1].values())
+                for x in itm2[1].items():
+                    m[curr][past][x[0]] = float(x[1]) / int(tot)
+        else:
+            m["0th"] = dict()
+            # 0th-order has no transitions
+            t_tot = sum(itm1[1].values())
+            for x in itm1[1].items():
+                m["0th"][x[0]] = float(x[1]) / int(t_tot)
+    return m
+
+
+def mc_choice_dict(a_dict):
+    rnd = random.uniform(0, 1)
+    ind = -1
+    sm = 0
+    for k,v in a_dict.items():
+        sm += v
+        if sm >= rnd:
+            ind = k
+            break
+    return ind
+
+
+def reweigh(pool, ws):
+    res = []
+    np.multiply(a, w)
+    out2 = [x / ss for x in out]
+
+    return res
+
+
+def mdl_generate_with_weights(mdl, weights, noccs, init_pool):
+    res = []
+    seq = ""
+    if init_pool:
+        seq = random.choice(init_pool)
+    else:
+        seq = mc_choice_dict(mdl["0th"])
+    res.append(seq)
+    # next trans
+    pool = reweigh(mdl[seq], weights)
+    for n in range(0,noccs):
+        res.append()
+
+
+def mdl_generate_with_weights_iter(mdl, weights, ll, init_pool=[]):
+    n = 100
+    results = []
+    for i in range(0,100):
+        results.append(mdl_generate_with_weights(mdl, weights, ll, init_pool))
+    return results
+
+
 # -------------------------------------------------------------------------
 # call fun
 def compute(seqs, dir_name="noDir", filename="noName", write_to_file=True):
+    # create model for generation
+    mdl = create_generation_model(seqs)
     # compute transitions frequencies
     tf = markov_trans_freq(seqs)
     # count ngrams occurrences
     ngrams = ngram_occurrences(seqs)
-
     # ...or chunk strength
     # tf = markov_chunk_strength(seqs)
     # rewrite seqs with tf
     tf_seqs = detect_transitions(seqs, tf)
     # tokenize seqs
     chunks = chunk_sequences(seqs, tf_seqs)
-    chunks_sure = chunk_sequences_only_sure(seqs, tf_seqs)
+    # chunks_sure = chunk_sequences_only_sure(seqs, tf_seqs)
     vocab = dict_to_vocab(chunks)
     detected = chunks_detection(seqs, chunks)
     #########################################################################
     # form class
-    detected2 = chunks_detection(seqs, chunks, write_fun=chunk_segmentation)
-    dc = fc.distributional_context(detected2[3],3)
+    segmented = chunks_detection(seqs, chunks, write_fun=chunk_segmentation)
+    fc_seqs = segmented[3]
+    dc = fc.distributional_context(fc_seqs,1)
     # print("---- dc ---- ")
     # pp.pprint(dc)
     classes = fc.form_classes(dc)
+    class_patt = fc.classes_patterns(classes,fc_seqs)
+
     #########################################################################
     # write
     if write_to_file:
+        with open(dir_name + filename + "_mdl.json", "w") as fp:
+            json.dump(mdl, fp, default=serialize_sets)
         with open(dir_name + filename + "_tf.json", "w") as fp:
             json.dump(tf, fp)
         with open(dir_name + filename + "_tf_seqs.json", "w") as fp:
             json.dump(tf_seqs, fp)
         with open(dir_name + filename + "_chunks.json", "w") as fp:
             json.dump(chunks, fp, default=serialize_sets)
-        with open(dir_name + filename + "_chunks_sure.json", "w") as fp:
-            json.dump(chunks_sure, fp, default=serialize_sets)
+        # with open(dir_name + filename + "_chunks_sure.json", "w") as fp:
+        #     json.dump(chunks_sure, fp, default=serialize_sets)
         with open(dir_name + filename + "_vocab.json", "w") as fp:
             json.dump(vocab, fp)
         with open(dir_name + filename + "_detected.json", "w") as fp:
             json.dump(detected, fp)
+        with open(dir_name + filename + "_segmented.json", "w") as fp:
+            json.dump(segmented, fp)
         with open(dir_name + filename + "_ngrams.json", "w") as fp:
             json.dump(ngrams, fp, )
+        with open(dir_name + filename + "_contexts.json", "w") as fp:
+            json.dump(dc, fp, default=serialize_sets)
         with open(dir_name + filename + "_form_classes.json", "w") as fp:
             json.dump(classes, fp, default=serialize_sets)
-    return tf, tf_seqs, chunks_sure, vocab, detected
+        with open(dir_name + filename + "_class_patterns.json", "w") as fp:
+            json.dump(class_patt, fp, default=serialize_sets)
+    # return tf, tf_seqs, chunks, vocab, detected, classes, class_patt
+    return tf, classes, class_patt
