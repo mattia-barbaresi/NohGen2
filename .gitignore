@@ -135,5 +135,6 @@ dmypy.json
 .vscode
 
 # results
-markov/results_*
+data/out/*
+data/out_POC/*
 
