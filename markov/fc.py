@@ -6,7 +6,7 @@ import utils
 pp = pprint.PrettyPrinter(indent=2)
 
 # threshold for classes
-THS = 0.85
+THS = 1.1
 
 
 # records pre- and post- lists of words (and the number of occurrences of each of them) that come

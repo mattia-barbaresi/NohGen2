@@ -3,7 +3,7 @@ import json
 import random
 import numpy as np
 import pprint
-from markov import form_class as fc
+from markov import fc
 from collections import OrderedDict
 
 pp = pprint.PrettyPrinter(indent=2)
@@ -657,35 +657,35 @@ def mc_choice_dict(a_dict):
     return ind
 
 
-def reweigh(pool, ws):
-    res = []
-    np.multiply(a, w)
-    out2 = [x / ss for x in out]
-
-    return res
-
-
-def mdl_generate_with_weights(mdl, weights, noccs, init_pool):
-    res = []
-    seq = ""
-    if init_pool:
-        seq = random.choice(init_pool)
-    else:
-        seq = mc_choice_dict(mdl["0th"])
-    res.append(seq)
-    # next trans
-    pool = reweigh(mdl[seq], weights)
-    for n in range(0,noccs):
-        res.append()
+# def reweigh(pool, ws):
+#     res = []
+#     np.multiply(a, w)
+#     out2 = [x / ss for x in out]
+#
+#     return res
 
 
-def mdl_generate_with_weights_iter(mdl, weights, ll, init_pool=[]):
-    n = 100
-    results = []
-    for i in range(0,100):
-        results.append(mdl_generate_with_weights(mdl, weights, ll, init_pool))
-    return results
-
+# def mdl_generate_with_weights(mdl, weights, noccs, init_pool):
+#     res = []
+#     seq = ""
+#     if init_pool:
+#         seq = random.choice(init_pool)
+#     else:
+#         seq = mc_choice_dict(mdl["0th"])
+#     res.append(seq)
+#     # next trans
+#     pool = reweigh(mdl[seq], weights)
+#     for n in range(0,noccs):
+#         res.append()
+#
+#
+# def mdl_generate_with_weights_iter(mdl, weights, ll, init_pool=[]):
+#     n = 100
+#     results = []
+#     for i in range(0,100):
+#         results.append(mdl_generate_with_weights(mdl, weights, ll, init_pool))
+#     return results
+#
 
 # -------------------------------------------------------------------------
 # call fun
@@ -744,3 +744,63 @@ def compute(seqs, dir_name="noDir", filename="noName", write_to_file=True):
             json.dump(class_patt, fp, default=serialize_sets)
     # return tf, tf_seqs, chunks, vocab, detected, classes, class_patt
     return tf, classes, class_patt
+
+
+# call fun for POCs
+def compute_POC(seqs, dir_name="noDir", filename="noName", write_to_file=True):
+    # create model for generation
+    mdl = create_generation_model(seqs)
+    # compute transitions frequencies
+    tf = markov_trans_freq(seqs)
+    # count ngrams occurrences
+    ngrams = ngram_occurrences(seqs)
+    # ...or chunk strength
+    tf_cs = markov_chunk_strength(seqs)
+    # rewrite seqs with tf
+    tf_seqs = detect_transitions(seqs, tf)
+    # tokenize seqs
+    chunks = chunk_sequences(seqs, tf_seqs)
+    chunks_sure = chunk_sequences_only_sure(seqs, tf_seqs)
+    vocab = dict_to_vocab(chunks)
+    detected = chunks_detection(seqs, chunks)
+    #########################################################################
+    # form class
+    segmented = chunks_detection(seqs, chunks, write_fun=chunk_segmentation)
+    fc_seqs = segmented[3]
+    dc = fc.distributional_context(fc_seqs,1)
+    # print("---- dc ---- ")
+    # pp.pprint(dc)
+    classes = fc.form_classes(dc)
+    class_patt = fc.classes_patterns(classes,fc_seqs)
+
+    #########################################################################
+    # write
+    if write_to_file:
+        with open(dir_name + filename + "_mdl.json", "w") as fp:
+            json.dump(mdl, fp, default=serialize_sets)
+        with open(dir_name + filename + "_tf.json", "w") as fp:
+            json.dump(tf, fp)
+        with open(dir_name + filename + "_tf_cs.json", "w") as fp:
+            json.dump(tf_cs, fp)
+        with open(dir_name + filename + "_tf_seqs.json", "w") as fp:
+            json.dump(tf_seqs, fp)
+        with open(dir_name + filename + "_chunks.json", "w") as fp:
+            json.dump(chunks, fp, default=serialize_sets)
+        with open(dir_name + filename + "_chunks_sure.json", "w") as fp:
+            json.dump(chunks_sure, fp, default=serialize_sets)
+        with open(dir_name + filename + "_vocab.json", "w") as fp:
+            json.dump(vocab, fp)
+        with open(dir_name + filename + "_detected.json", "w") as fp:
+            json.dump(detected, fp)
+        with open(dir_name + filename + "_segmented.json", "w") as fp:
+            json.dump(segmented, fp)
+        with open(dir_name + filename + "_ngrams.json", "w") as fp:
+            json.dump(ngrams, fp, )
+        with open(dir_name + filename + "_contexts.json", "w") as fp:
+            json.dump(dc, fp, default=serialize_sets)
+        with open(dir_name + filename + "_form_classes.json", "w") as fp:
+            json.dump(classes, fp, default=serialize_sets)
+        with open(dir_name + filename + "_class_patterns.json", "w") as fp:
+            json.dump(class_patt, fp, default=serialize_sets)
+    return tf, tf_seqs, chunks, vocab, detected, classes, class_patt
+
