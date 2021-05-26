@@ -16,14 +16,15 @@ import constants
 ###############################################################
 # calculate model and form classes for generation and evaluation of individuals
 
-file_in = "data/input.txt"
+file_in = "data/input2.txt"
 dir_out = "data/out/results_" + datetime.now().strftime("%Y%m%d-%H.%M.%S") + "/"
 os.mkdir(dir_out)
 copyfile(file_in, dir_out + "input.txt")
 
 # read
 sequences = utils.read_from_file(file_in, "")
-tps, classes, patterns = mkv.compute(sequences, dir_out, "tokens", write_to_file=False)
+# model
+tps, classes, patterns = mkv.compute(sequences, dir_out + "model/")
 start_time = datetime.now()
 
 # DEAP
@@ -40,12 +41,13 @@ toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.di
 # GA operators
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 toolbox.register("mate", tools.cxTwoPoint)
-toolbox.register("mutate", tools.mutUniformInt, low=0, up=100, indpb=0.3)
+# toolbox.register("mutate", tools.mutUniformInt, low=0, up=100, indpb=0.3)
+toolbox.register("mutate", tools.mutGaussian, mu=1, sigma=1, indpb=0.3)
 # decorators for normalizing individuals
-toolbox.decorate("mate", deap_ops.normalize_individuals())
-toolbox.decorate("mutate", deap_ops.normalize_individuals())
 toolbox.register("select", tools.selTournament, tournsize=3)
 # toolbox.register("selectTournament", tools.selTournament, k=constants.POP_SIZE / 10, tournsize=5)
+toolbox.decorate("mate", deap_ops.normalize_individuals())
+toolbox.decorate("mutate", deap_ops.normalize_individuals())
 # only fitness
 toolbox.register("evaluate", lambda x: (deap_ops.eval_fitness(x, tps, classes, patterns), 0))
 # fitness + novelty
@@ -164,7 +166,7 @@ plt.plot(range(0, constants.NGEN), novs, label="novelty")
 plt.legend()
 plt.tight_layout()
 plt.draw()
-plt.show()
+plt.savefig(dir_out+"graph")
 
 for ind in pop:
     # if ind.fitness.values[0] > 0.4:

@@ -39,18 +39,13 @@ def distributional_context(sequences, order=1):
 
 
 # evaluates form classes
-def first_last_classes(dist_ctx):
+def start_words(dist_ctx):
     # print initial and ending classes
-    first_set = []
-    last_set = []
-    pp.pprint(dist_ctx)
+    res = set()
     for word in dist_ctx.items():
         if not word[1]["sx"]:
-            first_set.append(word[0])
-        if not word[1]["dx"]:
-            last_set.append(word[0])
-    print("first: ", first_set)
-    print("last: ", last_set)
+            res.add(word[0])
+    return res
 
 
 def search(k,arr):
@@ -140,3 +135,8 @@ def evaluate_sequences(sequences, classes, patterns):
     for seq in sequences:
         res.append(evaluate_seq(seq, classes, patterns))
     return res
+
+
+# returns form classes and start pool
+def cf_model(dist_ctx):
+    return {"fc": form_classes(dist_ctx), "sp": start_words(dist_ctx)}

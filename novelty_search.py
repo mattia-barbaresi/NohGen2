@@ -1,9 +1,7 @@
-import math
-
+import bz2
 import numpy as np
 from deap import creator, tools
 import constants
-import utils
 
 
 # similar = 1, dissimilar = 0
@@ -54,7 +52,7 @@ def novelty(individual, population, archive):
     return value
 
 
-def archive_assessment(individual, evaluation,  archive):
+def archive_assessment(individual, evaluation, archive):
     arch_len = len(archive)
     # conditions needed to add the individual to the archive
     if evaluation > constants.NOV_FIT_THRESH:
@@ -71,10 +69,10 @@ def create_individuals(population, individual_to_compute_novelty, is_archive):
     for individual_in_population in population:
         # the individual is excluded from the population (is not excluded if there is more than one copy of it
         # the individual is not excluded from the archive
-        if not np.array_equal(individual_to_compute_novelty, individual_in_population) or\
+        if not np.array_equal(individual_to_compute_novelty, individual_in_population) or \
                 (not first) or is_archive:
             new_individual = creator.IndividualTN(individual_in_population)
-            new_individual.fitness.values = ind_similarity(individual_to_compute_novelty,new_individual),
+            new_individual.fitness.values = ind_similarity(individual_to_compute_novelty, new_individual),
             new_population.append(new_individual)
         else:
             first = False
@@ -93,6 +91,6 @@ def select(population, individual_to_compute_novelty, archive):
     pop_resulting = pop_selected + arch
 
     # select the 4 most similar neighbours
-    ind_selected = tools.selBest(pop_resulting, 4,)
+    ind_selected = tools.selBest(pop_resulting, 4, )
 
     return ind_selected

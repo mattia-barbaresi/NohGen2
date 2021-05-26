@@ -1,8 +1,17 @@
+import bz2
+
 import constants
 import numpy as np
-
 import novelty_search
 from markov import mkv, fc
+
+
+# NCD from NohGenerator
+def compute_ncd(a, b):
+    ca = float(len(bz2.compress(a)))
+    cb = float(len(bz2.compress(b)))
+    cab = float(len(bz2.compress(a + b)))
+    return (cab - min(ca, cb)) / max(ca, cb)
 
 
 # fun for creating an individual
@@ -21,11 +30,10 @@ def eval_fitness(individual, tps, classes, patterns):
     Return percentage of hits.
     """
 
-    # Do some hard computing on the individual
     sequences = mkv.generate_with_weights(
         tps=tps, weights=individual, n_seq=constants.NUM_SEQS, occ_per_seq=constants.SEQUENCE_LENGTH,
-        start_pool=classes[1])
-    res = fc.evaluate_sequences(sequences, classes, patterns)
+        start_pool=classes["sp"])
+    res = fc.evaluate_sequences(sequences, classes["fc"], patterns)
     return sum(res) / constants.NUM_SEQS
 
 

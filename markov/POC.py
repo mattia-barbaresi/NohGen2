@@ -77,12 +77,12 @@ with open(dir_out + "stats.json", "w") as fp:
 ##################################################################
 #                       compute tokens
 ##################################################################
-tkn_tf, tkn_tf_seq, tokens, tkn_voc, tokenized, tkn_cls, cls_patt = mkv.compute_POC(sequences, dir_out, "tokens")
-# tkn_tf_r, tkn_tf_seq_r, tks_r, tkn_voc_r, tknd_r, tkn_cls_r, cls_patt_r = markov.compute_POC(sequences_r, dir_out, "tks_rev")
+tkn_tf, tkn_tf_seq, tokens, tkn_voc, tokenized, tkn_cls, cls_patt = mkv.compute_poc(sequences, dir_out, "tokens")
+# tkn_tf_r, tkn_tf_seq_r, tks_r, tkn_voc_r, tknd_r, tkn_cls_r, cls_patt_r = markov.compute_poc(sequences_r, dir_out, "tks_rev")
 # convert tokenized to arr
 # arr = utils.dict_to_arr(tokenized)
 # # compute patterns
-# pat_tf, pat_tf_seq, patterns, pattern_vocabulary, ptnzd, ptt_cls, patt_cls_patt = markov.compute_POC(arr, dir_out,
+# pat_tf, pat_tf_seq, patterns, pattern_vocabulary, ptnzd, ptt_cls, patt_cls_patt = markov.compute_poc(arr, dir_out,
 #                                                                                                  "patterns")
 # tf = pat_tf
 # vocabulary = tkn_voc

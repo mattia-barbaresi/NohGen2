@@ -1,5 +1,4 @@
 import math
-import numpy as np
 
 
 # reads list of sequences from file
@@ -83,7 +82,6 @@ def dot_product(arr, brr):
 
 
 def angle_from_vector(arr, brr):
-    angle = math.pi
     if sum(arr) == sum(brr) == 0:
         return 0  # empty arrays are equal
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import json
+import os
 import random
 import numpy as np
 import pprint
@@ -689,65 +690,53 @@ def mc_choice_dict(a_dict):
 
 # -------------------------------------------------------------------------
 # call fun
-def compute(seqs, dir_name="noDir", filename="noName", write_to_file=True):
-    # create model for generation
-    mdl = create_generation_model(seqs)
+def compute(seqs, dir_name="noDir", write_to_file=True):
     # compute transitions frequencies
     tf = markov_trans_freq(seqs)
     # count ngrams occurrences
     ngrams = ngram_occurrences(seqs)
-    # ...or chunk strength
-    # tf = markov_chunk_strength(seqs)
     # rewrite seqs with tf
     tf_seqs = detect_transitions(seqs, tf)
     # tokenize seqs
     chunks = chunk_sequences(seqs, tf_seqs)
-    # chunks_sure = chunk_sequences_only_sure(seqs, tf_seqs)
     vocab = dict_to_vocab(chunks)
     detected = chunks_detection(seqs, chunks)
-    #########################################################################
     # form class
     segmented = chunks_detection(seqs, chunks, write_fun=chunk_segmentation)
     fc_seqs = segmented[3]
     dc = fc.distributional_context(fc_seqs,1)
-    # print("---- dc ---- ")
-    # pp.pprint(dc)
-    classes = fc.form_classes(dc)
-    class_patt = fc.classes_patterns(classes,fc_seqs)
+    classes = fc.cf_model(dc)
+    class_patt = fc.classes_patterns(classes["fc"],fc_seqs)
 
     #########################################################################
     # write
     if write_to_file:
-        with open(dir_name + filename + "_mdl.json", "w") as fp:
-            json.dump(mdl, fp, default=serialize_sets)
-        with open(dir_name + filename + "_tf.json", "w") as fp:
+        os.mkdir(dir_name)
+        with open(dir_name + "tf.json", "w") as fp:
             json.dump(tf, fp)
-        with open(dir_name + filename + "_tf_seqs.json", "w") as fp:
+        with open(dir_name + "tf_seqs.json", "w") as fp:
             json.dump(tf_seqs, fp)
-        with open(dir_name + filename + "_chunks.json", "w") as fp:
+        with open(dir_name + "chunks.json", "w") as fp:
             json.dump(chunks, fp, default=serialize_sets)
-        # with open(dir_name + filename + "_chunks_sure.json", "w") as fp:
-        #     json.dump(chunks_sure, fp, default=serialize_sets)
-        with open(dir_name + filename + "_vocab.json", "w") as fp:
+        with open(dir_name + "vocab.json", "w") as fp:
             json.dump(vocab, fp)
-        with open(dir_name + filename + "_detected.json", "w") as fp:
+        with open(dir_name + "detected.json", "w") as fp:
             json.dump(detected, fp)
-        with open(dir_name + filename + "_segmented.json", "w") as fp:
+        with open(dir_name + "segmented.json", "w") as fp:
             json.dump(segmented, fp)
-        with open(dir_name + filename + "_ngrams.json", "w") as fp:
+        with open(dir_name + "ngrams.json", "w") as fp:
             json.dump(ngrams, fp, )
-        with open(dir_name + filename + "_contexts.json", "w") as fp:
+        with open(dir_name + "contexts.json", "w") as fp:
             json.dump(dc, fp, default=serialize_sets)
-        with open(dir_name + filename + "_form_classes.json", "w") as fp:
+        with open(dir_name + "form_classes.json", "w") as fp:
             json.dump(classes, fp, default=serialize_sets)
-        with open(dir_name + filename + "_class_patterns.json", "w") as fp:
+        with open(dir_name + "class_patterns.json", "w") as fp:
             json.dump(class_patt, fp, default=serialize_sets)
-    # return tf, tf_seqs, chunks, vocab, detected, classes, class_patt
     return tf, classes, class_patt
 
 
 # call fun for POCs
-def compute_POC(seqs, dir_name="noDir", filename="noName", write_to_file=True):
+def compute_poc(seqs, dir_name="noDir", filename="noName", write_to_file=True):
     # create model for generation
     mdl = create_generation_model(seqs)
     # compute transitions frequencies
