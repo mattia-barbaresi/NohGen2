@@ -19,15 +19,15 @@ import zlib
 def compute_sbc(file_name):
     res = []
     count = 0
-    with open(file_name,"r") as fp:
+    with open(file_name, "r") as fp:
         for line in fp:
-            res.append(line.replace('\n', ''))
+            res.append(line.replace('\n', '').encode())
             count += 1
     if count > 1:
         sbc = SBC("bz2", "9", res)
         return sbc.compute()
     else:
-        print ("(SBC, path excluded): " + file_name)
+        print("(SBC, path excluded): " + file_name)
         return -1
 
 
@@ -35,7 +35,7 @@ def compute_sbc_from_pop(pop):
     pop_list = []
     count = 0
     for ind in pop:
-        pop_list.append("".join(ind))
+        pop_list.append("".join(ind).encode())
         count += 1
     if count > 1:
         sbc = SBC("bz2", "9", pop_list)
