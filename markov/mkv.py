@@ -4,6 +4,8 @@ import os
 import random
 import numpy as np
 import pprint
+
+import constants
 from markov import fc
 from collections import OrderedDict
 
@@ -22,15 +24,6 @@ class BColors:
     GREEN = '\033[92m'
     RED = '\033[91m'
     END = '\033[0m'
-
-
-# parameters
-class Params:
-    # in max-entropy sequences each symbol has 1/N freq.
-    def __init__(self):
-        pass
-
-    TSH = 0.85
 
 
 # sort key selector function
@@ -268,7 +261,7 @@ def detect_transitions(sequences, mtp):
 
 
 # chunking sequences
-def chunk_sequences(seqs, mtp, orders=[2,3]):
+def chunk_sequences(seqs, mtp, orders=[2,3,4]):
     """
     Returns segments/chunks of seqs extracted using mtp transitions
 
@@ -292,7 +285,7 @@ def chunk_sequences(seqs, mtp, orders=[2,3]):
             cks = ""
             j = 0
             while j < len(x):
-                if str(x[j]) == "-" or float(x[j]) >= Params.TSH:
+                if str(x[j]) == "-" or float(x[j]) >= constants.MK_TSH:
                     cks = cks + " " + str(seqs[i][j])
                 else:
                     if cks != "":
@@ -469,7 +462,7 @@ def write_tp_file(path, tps, seqs, console=True):
                 for x in item:
                     if x != "-":
                         rs = round(x, 2)
-                        if rs < Params.TSH:
+                        if rs < constants.MK_TSH:
                             clr = BColors.RED
                         else:
                             clr = BColors.BLUE
@@ -545,6 +538,8 @@ def generate_with_weights(tps, weights, voc=[], n_seq=1, occ_per_seq=16, start_p
     res = []
     # generate n_seq sequences
     for _ns in range(0, n_seq):
+        # pick out an order
+        order = mc_choice(weights)
         # start symbol
         if start_pool:
             str_res = random.choice(list(start_pool))
@@ -557,7 +552,7 @@ def generate_with_weights(tps, weights, voc=[], n_seq=1, occ_per_seq=16, start_p
             trans = translate_sequence(str_res,voc)
         while len(trans.split(" ")) < occ_per_seq:
             # pick out the order
-            order = mc_choice(weights)
+            # order = mc_choice(weights)
             if order == 0:
                 # if order = 0 pick out a random symbol
                 str_res += " " + mc_choice_dict(tps[0])
@@ -565,7 +560,7 @@ def generate_with_weights(tps, weights, voc=[], n_seq=1, occ_per_seq=16, start_p
                 # no further transition
                 # cut first symbol and search for the order-1 transition
                 i = 0
-                # pick out the right history (past length due to choosen order)
+                # pick out the right history (past length due to chosen order)
                 sid = " ".join(str_res.split(" ")[-order:])
                 while i < order and (sid not in tps[order - i].keys()):
                     i += 1
@@ -694,19 +689,21 @@ def compute(seqs, dir_name="noDir", write_to_file=True):
     # compute transitions frequencies
     tf = markov_trans_freq(seqs)
     # count ngrams occurrences
-    ngrams = ngram_occurrences(seqs)
+    # ngrams = ngram_occurrences(seqs)
     # rewrite seqs with tf
     tf_seqs = detect_transitions(seqs, tf)
     # tokenize seqs
     chunks = chunk_sequences(seqs, tf_seqs)
-    vocab = dict_to_vocab(chunks)
-    detected = chunks_detection(seqs, chunks)
+    # vocab = dict_to_vocab(chunks)
+    # detected = chunks_detection(seqs, chunks)
     # form class
     segmented = chunks_detection(seqs, chunks, write_fun=chunk_segmentation)
     fc_seqs = segmented[3]
-    dc = fc.distributional_context(fc_seqs,1)
-    classes = fc.cf_model(dc)
-    class_patt = fc.classes_patterns(classes["fc"],fc_seqs)
+    dc = fc.distributional_context(fc_seqs,6)
+    classes = dict()
+    classes["fc"] = fc.form_classes(dc)
+    class_patt = fc.classes_patterns(fc_seqs, classes["fc"])
+    classes["sp"] = fc.start_words(classes["fc"], class_patt)
 
     #########################################################################
     # write
@@ -718,21 +715,22 @@ def compute(seqs, dir_name="noDir", write_to_file=True):
             json.dump(tf_seqs, fp)
         with open(dir_name + "chunks.json", "w") as fp:
             json.dump(chunks, fp, default=serialize_sets)
-        with open(dir_name + "vocab.json", "w") as fp:
-            json.dump(vocab, fp)
-        with open(dir_name + "detected.json", "w") as fp:
-            json.dump(detected, fp)
+        # with open(dir_name + "vocab.json", "w") as fp:
+        #     json.dump(vocab, fp)
+        # with open(dir_name + "detected.json", "w") as fp:
+        #     json.dump(detected, fp)
         with open(dir_name + "segmented.json", "w") as fp:
             json.dump(segmented, fp)
-        with open(dir_name + "ngrams.json", "w") as fp:
-            json.dump(ngrams, fp, )
+        # with open(dir_name + "ngrams.json", "w") as fp:
+        #     json.dump(ngrams, fp, )
         with open(dir_name + "contexts.json", "w") as fp:
             json.dump(dc, fp, default=serialize_sets)
         with open(dir_name + "form_classes.json", "w") as fp:
             json.dump(classes, fp, default=serialize_sets)
         with open(dir_name + "class_patterns.json", "w") as fp:
             json.dump(class_patt, fp, default=serialize_sets)
-    return tf, classes, class_patt
+
+    return tf,tf_seqs, classes, class_patt
 
 
 # call fun for POCs
@@ -756,11 +754,11 @@ def compute_poc(seqs, dir_name="noDir", filename="noName", write_to_file=True):
     # form class
     segmented = chunks_detection(seqs, chunks, write_fun=chunk_segmentation)
     fc_seqs = segmented[3]
-    dc = fc.distributional_context(fc_seqs,1)
+    dc = fc.distributional_context(fc_seqs,6)
     # print("---- dc ---- ")
     # pp.pprint(dc)
     classes = fc.form_classes(dc)
-    class_patt = fc.classes_patterns(classes,fc_seqs)
+    class_patt = fc.classes_patterns(fc_seqs, classes)
 
     #########################################################################
     # write
@@ -792,4 +790,3 @@ def compute_poc(seqs, dir_name="noDir", filename="noName", write_to_file=True):
         with open(dir_name + filename + "_class_patterns.json", "w") as fp:
             json.dump(class_patt, fp, default=serialize_sets)
     return tf, tf_seqs, chunks, vocab, detected, classes, class_patt
-

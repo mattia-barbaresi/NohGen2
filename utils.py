@@ -96,6 +96,7 @@ def angle_from_vector(arr, brr):
     # round error fix
     if (1.0 - val) <= 0.0001:
         val = 1.0
+    # val range -1 to 1
     angle = math.acos(val)
 
     # Print the angle

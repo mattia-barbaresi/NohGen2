@@ -1,12 +1,12 @@
 # count pre- and post- occurrences for each word to find form classes
 import numpy as np
 import pprint
+
+import constants
+import metrics
 import utils
 
 pp = pprint.PrettyPrinter(indent=2)
-
-# threshold for classes
-THS = 1.1
 
 
 # records pre- and post- lists of words (and the number of occurrences of each of them) that come
@@ -39,12 +39,23 @@ def distributional_context(sequences, order=1):
 
 
 # evaluates form classes
-def start_words(dist_ctx):
+# returns words with no sx context
+def start_words_old(dist_ctx):
     # print initial and ending classes
     res = set()
     for word in dist_ctx.items():
         if not word[1]["sx"]:
             res.add(word[0])
+    return res
+
+
+def start_words(classes, patterns):
+    # print initial and ending classes
+    res = set()
+    # return members of starting classes in patterns
+    pti = [x.strip(" ").split(" ")[0] for x in patterns]
+    for i in pti:
+        res.update(classes[int(i)])
     return res
 
 
@@ -75,11 +86,11 @@ def form_classes(dist_ctx):
         if not search(k,res):
             sim = set()
             sim.add(k)
-            sim.update(x[0] for x in values.items() if float(x[1]) < THS)
+            sim.update(x[0] for x in values.items() if float(x[1]) < constants.FC_TSH)
             res[idx] = sim
             idx += 1
-    print("res: ")
-    pp.pprint(res)
+    # print("res: ")
+    # pp.pprint(res)
     return res
 
 
@@ -90,7 +101,7 @@ def classes_index(classes, word):
     return -1
 
 
-def classes_patterns(classes,sequences):
+def classes_patterns(sequences, classes):
     res = set()
     for seq in sequences:
         pattern = ""
@@ -102,41 +113,60 @@ def classes_patterns(classes,sequences):
                 print("ERROR")
         pattern = pattern.strip(" ")
         res.add(pattern)
-    print("class patterns: ")
-    pp.pprint(res)
+    # print("class patterns: ")
+    # pp.pprint(res)
     return res
 
 
-# given a sequence calculate its pattern based on classes
-def evaluate_seq(sequence, classes, patterns):
-    iseq = sequence
-    res_patt = ""
-    while len(iseq) > 0:
-        iseq2 = iseq
-        for cl in classes.items():
-            fnd = False
-            i = 0
-            lst = list(cl[1])
-            while i < len(lst) and (not fnd):
-                if iseq.find(lst[i]) == 0:
-                    fnd = True
-                    res_patt += " " + str(cl[0])
-                    iseq = iseq[len(lst[i]):].strip(" ")
-                else:
-                    i += 1
-        if iseq2 == iseq:
-            return 0
-    return 1 if res_patt.strip(" ") in patterns else 0
-
-
-# # evaluate generated sequences with form classes and pattern
+# evaluate generated sequences with form classes and pattern
+# return 1 if the generated pattern is in patterns set
 def evaluate_sequences(sequences, classes, patterns):
     res = []
     for seq in sequences:
-        res.append(evaluate_seq(seq, classes, patterns))
+        iseq = seq
+        res_patt = ""
+        while len(iseq) > 0:
+            iseq2 = iseq
+            for cl in classes.items():
+                fnd = False
+                i = 0
+                lst = list(cl[1])
+                while i < len(lst) and (not fnd):
+                    if iseq.find(lst[i]) == 0:
+                        fnd = True
+                        res_patt += " " + str(cl[0])
+                        iseq = iseq[len(lst[i]):].strip(" ")
+                    else:
+                        i += 1
+            if iseq2 == iseq:
+                return 0
+        res.append(1 if res_patt.strip(" ") in patterns else 0)
     return res
 
 
-# returns form classes and start pool
-def cf_model(dist_ctx):
-    return {"fc": form_classes(dist_ctx), "sp": start_words(dist_ctx)}
+# evaluate generated sequences with form classes and pattern using str_similarity
+def evaluate_sequences2(sequences, classes, patterns):
+    res = []
+    for seq in sequences:
+        iseq = seq
+        res_patt = ""
+        while len(iseq) > 0:
+            iseq2 = iseq
+            fnd = False
+            for cl in classes.items():
+                i = 0
+                lst = list(cl[1])
+                while i < len(lst) and (not fnd):
+                    if iseq.find(lst[i]) == 0:
+                        fnd = True
+                        res_patt += " " + str(cl[0])
+                        iseq = iseq[len(lst[i]):].strip(" ")
+                    else:
+                        i += 1
+            if iseq2 == iseq:
+                res_patt += " " + iseq[0]
+                iseq = iseq[1:].strip(" ")
+        # compute similarity
+        res.append(max([metrics.str_similarity(res_patt.strip(" "), x) for x in patterns]))
+    return res
+

@@ -16,9 +16,9 @@ import matplotlib.pyplot as plt
 #               init, input, output
 ###############################################################
 pp = pprint.PrettyPrinter(indent=2)
-file_in = "../data/input.txt"
+file_in = "../data/all_songs_in_G.txt"
 sep = ""
-dir_out = "../data/out_POC/results_" + datetime.now().strftime("%Y%m%d-%H.%M.%S") + "/"
+dir_out = "../data/out_POC/results_allG_" + datetime.now().strftime("%Y%m%d-%H.%M.%S") + "/"
 os.mkdir(dir_out)
 copyfile(file_in, dir_out + "input.txt")
 # read
@@ -91,8 +91,9 @@ tkn_tf, tkn_tf_seq, tokens, tkn_voc, tokenized, tkn_cls, cls_patt = mkv.compute_
 #                           generate
 ##################################################################
 # generate new sequences
+print(sum([0.124, 0.243, 0.0465, 0.225, 0.0635, 0.298]))
 generated = mkv.generate_with_weights(
-    tkn_tf, [0, 0.1, 0.9, 0, 0, 0], voc=[], n_seq=50, occ_per_seq=15, start_pool=tkn_cls[1])
+    tkn_tf, [0, 0., 0.05, 0.25, 0.2, 0.5], voc=[], n_seq=50, occ_per_seq=100, start_pool=tkn_cls[1])
 # translate to tokens
 # t2 = markov.translate({0:generated}, vocabulary)
 # pp.pprint(t2)
