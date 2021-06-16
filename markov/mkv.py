@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 import json
+import math
 import os
-import random
-import numpy as np
 import pprint
-
-import constants
-from markov import fc
+import random
 from collections import OrderedDict
+
+import numpy as np
+
+from markov import fc
 
 pp = pprint.PrettyPrinter(indent=2)
 
 
-# for colored console out
+# for colored console out_old3
 class BColors:
     def __init__(self):
         pass
@@ -261,7 +262,7 @@ def detect_transitions(sequences, mtp):
 
 
 # chunking sequences
-def chunk_sequences(seqs, mtp, orders=[2,3,4]):
+def chunk_sequences(seqs, mtp, mkv_thr, orders=[2, 3, 4]):
     """
     Returns segments/chunks of seqs extracted using mtp transitions
 
@@ -285,7 +286,7 @@ def chunk_sequences(seqs, mtp, orders=[2,3,4]):
             cks = ""
             j = 0
             while j < len(x):
-                if str(x[j]) == "-" or float(x[j]) >= constants.MK_TSH:
+                if str(x[j]) == "-" or float(x[j]) >= mkv_thr:
                     cks = cks + " " + str(seqs[i][j])
                 else:
                     if cks != "":
@@ -430,7 +431,7 @@ def dict_to_vocab(chunks_dict):
 
 
 # write tps instead of token in sequences
-def write_tp_file(path, tps, seqs, console=True):
+def write_tp_file(path, tps, seqs, mkv_thr, console=True):
     """
     write transitional probabilities sequences for each order in file and console.
 
@@ -439,12 +440,15 @@ def write_tp_file(path, tps, seqs, console=True):
     Parameters
     ----------
 
+
     path : str
         the name of the file
     tps : dict
         the transitional probabilities dictionary
     seqs: list of str
         input sequences
+    mkv_thr: float
+     threshold for coloring
     console : bool
         If True print (colored) tps in (Python) console too
     """
@@ -462,7 +466,7 @@ def write_tp_file(path, tps, seqs, console=True):
                 for x in item:
                     if x != "-":
                         rs = round(x, 2)
-                        if rs < constants.MK_TSH:
+                        if rs < mkv_thr:
                             clr = BColors.RED
                         else:
                             clr = BColors.BLUE
@@ -534,12 +538,12 @@ def generate(tps, n_seq, occ_per_seq=16):
 
 
 # generate using n-order markov transitions and weights for markov orders
-def generate_with_weights(tps, weights, voc=[], n_seq=1, occ_per_seq=16, start_pool=[]):
+def generate_with_weights(tps, weights, voc=None, n_seq=1, occ_per_seq=16, start_pool=None):
     res = []
     # generate n_seq sequences
     for _ns in range(0, n_seq):
-        # pick out an order
-        order = mc_choice(weights)
+        # pick out_old3 an order
+        # order = mc_choice(weights)
         # start symbol
         if start_pool:
             str_res = random.choice(list(start_pool))
@@ -549,22 +553,20 @@ def generate_with_weights(tps, weights, voc=[], n_seq=1, occ_per_seq=16, start_p
         # generate occ_per_seq symbols (per sequence)
         trans = str_res
         if voc:
-            trans = translate_sequence(str_res,voc)
+            trans = translate_sequence(str_res, voc)
         while len(trans.split(" ")) < occ_per_seq:
-            # pick out the order
-            # order = mc_choice(weights)
+            # pick out_old3 the order
+            order = mc_choice(weights)
             if order == 0:
-                # if order = 0 pick out a random symbol
+                # if order = 0 pick out_old3 a random symbol
                 str_res += " " + mc_choice_dict(tps[0])
             else:
-                # no further transition
-                # cut first symbol and search for the order-1 transition
                 i = 0
-                # pick out the right history (past length due to chosen order)
+                # pick out_old3 the right history (past length due to chosen order)
                 sid = " ".join(str_res.split(" ")[-order:])
                 while i < order and (sid not in tps[order - i].keys()):
                     i += 1
-                    sid = " ".join(sid.split(" ")[-(order-i):])
+                    sid = " ".join(sid.split(" ")[-(order - i):])
                 if sid and (order - i > 0):
                     val = tps[order - i][sid]
                     idx = mc_choice(list(val.values()))
@@ -594,16 +596,13 @@ def translate(sequences, vocabulary):
 
 
 def translate_sequence(sequence, vocabulary):
+    print(len(vocabulary))
+    print(sequence)
     res = ""
     tks = [int(x) for x in sequence.split(" ")]
     sym = " ".join(np.array(vocabulary)[tks])
     res += sym
     return res
-
-
-# detect input seqs using token and patter vocabs
-def detect(seqs, token_voc, pattern_voc, ):
-    pass
 
 
 # serialize sets as list
@@ -645,7 +644,7 @@ def mc_choice_dict(a_dict):
     rnd = random.uniform(0, 1)
     ind = -1
     sm = 0
-    for k,v in a_dict.items():
+    for k, v in a_dict.items():
         sm += v
         if sm >= rnd:
             ind = k
@@ -656,7 +655,7 @@ def mc_choice_dict(a_dict):
 # def reweigh(pool, ws):
 #     res = []
 #     np.multiply(a, w)
-#     out2 = [x / ss for x in out]
+#     out2 = [x / ss for x in out_old3]
 #
 #     return res
 
@@ -685,7 +684,8 @@ def mc_choice_dict(a_dict):
 
 # -------------------------------------------------------------------------
 # call fun
-def compute(seqs, dir_name="noDir", write_to_file=True):
+def compute(seqs, params, dir_name="noDir", write_to_file=True):
+    avg_len = sum(map(len, seqs)) / len(seqs)
     # compute transitions frequencies
     tf = markov_trans_freq(seqs)
     # count ngrams occurrences
@@ -693,44 +693,48 @@ def compute(seqs, dir_name="noDir", write_to_file=True):
     # rewrite seqs with tf
     tf_seqs = detect_transitions(seqs, tf)
     # tokenize seqs
-    chunks = chunk_sequences(seqs, tf_seqs)
-    # vocab = dict_to_vocab(chunks)
-    # detected = chunks_detection(seqs, chunks)
+    chunks = chunk_sequences(seqs, tf_seqs, params.mkv_thr)  # for order > 0
+    vocab = dict_to_vocab(chunks)
+    detected = chunks_detection(seqs, chunks)
     # form class
     segmented = chunks_detection(seqs, chunks, write_fun=chunk_segmentation)
-    fc_seqs = segmented[3]
-    dc = fc.distributional_context(fc_seqs,6)
+    fc_seqs = segmented[params.fc_seg_ord]
+    dc = fc.distributional_context(fc_seqs, params.fc_n_ctx)
     classes = dict()
-    classes["fc"] = fc.form_classes(dc)
+    # fc sloow
+    classes["fc"] = fc.form_classes(dc, params.fc_thr)
     class_patt = fc.classes_patterns(fc_seqs, classes["fc"])
     classes["sp"] = fc.start_words(classes["fc"], class_patt)
 
     #########################################################################
     # write
     if write_to_file:
-        os.mkdir(dir_name)
+        if not os.path.exists(dir_name):
+            os.mkdir(dir_name)
         with open(dir_name + "tf.json", "w") as fp:
             json.dump(tf, fp)
         with open(dir_name + "tf_seqs.json", "w") as fp:
             json.dump(tf_seqs, fp)
-        with open(dir_name + "chunks.json", "w") as fp:
-            json.dump(chunks, fp, default=serialize_sets)
-        # with open(dir_name + "vocab.json", "w") as fp:
-        #     json.dump(vocab, fp)
-        # with open(dir_name + "detected.json", "w") as fp:
-        #     json.dump(detected, fp)
-        with open(dir_name + "segmented.json", "w") as fp:
-            json.dump(segmented, fp)
-        # with open(dir_name + "ngrams.json", "w") as fp:
-        #     json.dump(ngrams, fp, )
-        with open(dir_name + "contexts.json", "w") as fp:
-            json.dump(dc, fp, default=serialize_sets)
         with open(dir_name + "form_classes.json", "w") as fp:
             json.dump(classes, fp, default=serialize_sets)
         with open(dir_name + "class_patterns.json", "w") as fp:
             json.dump(class_patt, fp, default=serialize_sets)
+        with open(dir_name + "avg_len.json", "w") as fp:
+            json.dump(avg_len, fp, default=serialize_sets)
+        with open(dir_name + "chunks.json", "w") as fp:
+            json.dump(chunks, fp, default=serialize_sets)
+        with open(dir_name + "vocab.json", "w") as fp:
+            json.dump(vocab, fp)
+        with open(dir_name + "detected.json", "w") as fp:
+            json.dump(detected, fp)
+        # with open(dir_name + "segmented.json", "w") as fp:
+        #     json.dump(segmented, fp)
+        # # with open(dir_name + "ngrams.json", "w") as fp:
+        # #     json.dump(ngrams, fp, )
+        # with open(dir_name + "contexts.json", "w") as fp:
+        #     json.dump(dc, fp, default=serialize_sets)
 
-    return tf,tf_seqs, classes, class_patt
+    return tf, tf_seqs, classes, class_patt
 
 
 # call fun for POCs
@@ -746,7 +750,7 @@ def compute_poc(seqs, dir_name="noDir", filename="noName", write_to_file=True):
     # rewrite seqs with tf
     tf_seqs = detect_transitions(seqs, tf)
     # tokenize seqs
-    chunks = chunk_sequences(seqs, tf_seqs)
+    chunks = chunk_sequences(seqs, tf_seqs, 0.85, orders=[1, 2, 3, 4, 5])
     chunks_sure = chunk_sequences_only_sure(seqs, tf_seqs)
     vocab = dict_to_vocab(chunks)
     detected = chunks_detection(seqs, chunks)
@@ -754,11 +758,14 @@ def compute_poc(seqs, dir_name="noDir", filename="noName", write_to_file=True):
     # form class
     segmented = chunks_detection(seqs, chunks, write_fun=chunk_segmentation)
     fc_seqs = segmented[3]
-    dc = fc.distributional_context(fc_seqs,6)
+    # fc sloow
+    dc = fc.distributional_context(fc_seqs, 3)
     # print("---- dc ---- ")
     # pp.pprint(dc)
-    classes = fc.form_classes(dc)
-    class_patt = fc.classes_patterns(fc_seqs, classes)
+    classes = dict()
+    classes["fc"] = fc.form_classes(dc, 1.0)
+    class_patt = fc.classes_patterns(fc_seqs, classes["fc"])
+    classes["sp"] = fc.start_words(classes["fc"], class_patt)
 
     #########################################################################
     # write
@@ -790,3 +797,122 @@ def compute_poc(seqs, dir_name="noDir", filename="noName", write_to_file=True):
         with open(dir_name + filename + "_class_patterns.json", "w") as fp:
             json.dump(class_patt, fp, default=serialize_sets)
     return tf, tf_seqs, chunks, vocab, detected, classes, class_patt
+
+
+def load_model(dir_in):
+    # load models: TPs and form classes
+    with open(dir_in + '/model/tf.json') as fp:
+        tff = json.load(fp)
+        tf = {int(k): v for k, v in tff.items()}
+    with open(dir_in + '/model/form_classes.json') as fp:
+        fcl = json.load(fp)
+    with open(dir_in + '/model/class_patterns.json') as fp:
+        cpt = json.load(fp)
+    with open(dir_in + '/model/avg_len.json') as fp:
+        al = json.load(fp)
+
+    return tf, fcl, cpt, al
+
+
+# # for each sequence calculate "markov support" with default min value
+def sequences_markov_support_with_min_default(sequences, tps):
+    _MIN = 0.000000001  # minimum as a 0-like probability
+    results = []
+    max_ord = max(tps.keys())
+    for seq in sequences:
+        arr_seq = seq.strip(" ").split(" ")
+        res = 1.0
+        for i, ch in enumerate(arr_seq):
+            if i == 0:  # single symbol
+                res = float(tps[0][ch])  # res *= tps[0][ch]
+            else:
+                # set max order limit
+                iord = i if i <= max_ord else max_ord
+                past = " ".join(arr_seq[:i][-iord:])
+                if past in tps[iord].keys():
+                    if ch in tps[iord][past]:
+                        res *= float(tps[iord][past][ch])
+                    else:
+                        # no symbol transition from that past in level
+                        res *= _MIN
+                else:
+                    # no past in level, thus a transition-miss happened in the immediately past step
+                    res *= _MIN
+        results.append(res)
+    return results
+
+
+# for each sequence calculate "markov support" with log
+def sequences_markov_support_log(sequences, tps):
+    _MIN = 0.000000001  # minimum as a 0-like probability
+    results = []
+    max_ord = max(tps.keys())
+    for seq in sequences:
+        arr_seq = seq.strip(" ").split(" ")
+        res = 0
+        for i, ch in enumerate(arr_seq):
+            if i == 0:  # single symbol
+                res = - math.log(float(tps[0][ch]))  # res *= tps[0][ch]
+            else:
+                # set max order limit
+                iord = i if i <= max_ord else max_ord
+                past = " ".join(arr_seq[:i][-iord:])
+                if past in tps[iord].keys():
+                    if ch in tps[iord][past]:
+                        res += - math.log(float(tps[iord][past][ch]))
+                    else:
+                        # no symbol transition from that past in level
+                        res += - math.log(_MIN)
+                else:
+                    # no past in level, thus a transition-miss happened in the immediately past step
+                    res += - math.log(_MIN)
+        results.append(res)
+    return results
+
+
+# for each sequence calculate "markov support" with switches
+def sequences_markov_support_with_switches(sequences, tps, weights=[1, 1, 1, 1, 1, 1]):
+    results = []
+    max_ord = max(tps.keys())
+    for seq in sequences:
+        arr_seq = seq.strip(" ").split(" ")
+        res = 1.0
+        for i, sym in enumerate(arr_seq):
+            if i == 0:  # single symbol
+                res = float(tps[0][sym])  # res *= tps[0][ch]
+            else:
+                # set max order limit
+                iord = i if i <= max_ord else max_ord
+                past = " ".join(arr_seq[:i][-iord:]).strip(" ")
+                while (iord >= 0) and (past not in tps[iord].keys() or sym not in tps[iord][past].keys()):
+                    iord = iord - 1
+                    past = " ".join(arr_seq[:i][-iord:])
+                if iord > 0:
+                    res *= float(weights[iord] * tps[iord][past][sym])
+                else:  # single symbol
+                    res *= float(weights[0] * tps[0][sym])
+        results.append(res)
+    return results
+
+
+# for each sequence calculate "markov support" per order
+def sequences_markov_support_per_order(sequences, tps):
+    _MIN = 0.000000001  # minimum as a 0-like probability
+    results = dict()
+    for ind,seq in enumerate(sequences):
+        results[ind] = dict()
+        arr_seq = seq.strip(" ").split(" ")
+        for iord in tps.keys():
+            res = 1.0
+            for i,ch in enumerate(arr_seq):
+                if iord == 0:  # single symbol
+                    res = float(tps[0][ch])  # res *= tps[0][ch]
+                else:
+                    if i >= iord:
+                        past = " ".join(arr_seq[:i][-iord:])
+                        if (past in tps[iord].keys()) and (ch in tps[iord][past]):
+                            res *= float(tps[iord][past][ch])
+                        else:
+                            res *= _MIN
+            results[ind][iord] = res
+    return results

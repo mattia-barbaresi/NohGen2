@@ -33,7 +33,8 @@ def norm_dissimilarity(ind1, ind2):
 def str_similarity(a, b):
     a = "".join(a)
     b = "".join(b)
-    return (jw.get_jaro_distance(a, b) + 1 - distance.jaccard(a, b)) / 2
+    # return (jw.get_jaro_distance(a, b) + 1 - distance.jaccard(a, b)) / 2
+    return 1 - distance.jaccard(a, b)
 
 
 # similar = 0, dissimilar = 1

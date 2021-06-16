@@ -5,7 +5,7 @@ from mpl_toolkits.axes_grid1 import host_subplot
 
 
 # plot fit
-def plot_tps(dir_out, tf_seqs):
+def plot_tps(dir_out, tf_seqs, file_name=""):
     fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(9,6))
     for ax in axes.flat:
         ax.set(xlabel='sequences', ylabel='TPs')
@@ -19,12 +19,16 @@ def plot_tps(dir_out, tf_seqs):
         axes[i % 2][j % 3].set_yticks(np.arange(start=0, stop=1.1, step=0.1))
         axes[i % 2][j % 3].label_outer()
         for ln in itm[1]:
-            axes[i % 2][j % 3].axis([0,len(ln), 0.0, 1.1])
-            vl = [round(x,2) if x != "-" else 0 for x in ln]
-            axes[i % 2][j % 3].plot(range(0,len(ln)),vl)
+            if len(ln) > 0:
+                axes[i % 2][j % 3].axis([0,len(ln), 0.0, 1.1])
+                vl = [round(x,2) if x != "-" else 0 for x in ln]
+                axes[i % 2][j % 3].plot(range(0,len(ln)),vl)
     # fig.tight_layout()
     # plt.show()
-    fig.savefig(dir_out + "tps", bbox_inches="tight")
+    fn = ""
+    if file_name:
+        fn = "_" + file_name
+    fig.savefig(dir_out + "tps" + fn, bbox_inches="tight")
     plt.clf()
 
 

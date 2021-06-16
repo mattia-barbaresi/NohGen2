@@ -98,7 +98,6 @@ def angle_from_vector(arr, brr):
         val = 1.0
     # val range -1 to 1
     angle = math.acos(val)
-
     # Print the angle
     # print('%.5f' % angle)
     return angle
@@ -115,7 +114,7 @@ def create_coords(a_dict, dims):
 
 
 def angle_from_dict(dict_a, dict_b, coord):
-    # if contexts have same values, calculate angle
+    # get angle from calculated coordinate-vectors
     val_a = create_coords(dict_a, coord)
     val_b = create_coords(dict_b, coord)
     return angle_from_vector(val_a, val_b)

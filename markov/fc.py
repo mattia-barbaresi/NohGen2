@@ -1,8 +1,6 @@
 # count pre- and post- occurrences for each word to find form classes
 import numpy as np
 import pprint
-
-import constants
 import metrics
 import utils
 
@@ -19,10 +17,13 @@ def distributional_context(sequences, order=1):
                 res[el] = dict()
                 res[el]["sx"] = dict()
                 res[el]["dx"] = dict()
-                for i in range(1, order + 1):
-                    for search_seq in sequences:
-                        values = np.array(search_seq)
-                        for index in np.where(values == el)[0]:
+                # for all other strings
+                for search_seq in sequences:
+                    values = np.array(search_seq)
+                    # for each found match
+                    for index in np.where(values == el)[0]:
+                        # count all pre e post order-context words
+                        for i in range(1, order + 1):
                             # sx occurrence
                             if index >= i:
                                 if values[index - i] in res[el]["sx"]:
@@ -66,9 +67,11 @@ def search(k,arr):
     return False
 
 
-def form_classes(dist_ctx):
+def form_classes(dist_ctx, fc_thr):
     angles = dict()
-    coords = dist_ctx.keys()
+    # selects words and uses them as a coordinate vector
+    # limit the number of coords
+    coords = list(dist_ctx.keys())
     # evaluates words distance, context similarity
     for itm1 in dist_ctx.items():
         if itm1[0] not in angles:
@@ -86,8 +89,10 @@ def form_classes(dist_ctx):
         if not search(k,res):
             sim = set()
             sim.add(k)
-            sim.update(x[0] for x in values.items() if float(x[1]) < constants.FC_TSH)
-            res[idx] = sim
+            for x in values.items():
+                if float(x[1]) <= fc_thr:
+                    sim.add(x[0])
+            res[idx] = list(sim)
             idx += 1
     # print("res: ")
     # pp.pprint(res)
@@ -115,34 +120,33 @@ def classes_patterns(sequences, classes):
         res.add(pattern)
     # print("class patterns: ")
     # pp.pprint(res)
-    return res
+    return list(res)
 
 
 # evaluate generated sequences with form classes and pattern
 # return 1 if the generated pattern is in patterns set
-def evaluate_sequences(sequences, classes, patterns):
-    res = []
-    for seq in sequences:
-        iseq = seq
-        res_patt = ""
-        while len(iseq) > 0:
-            iseq2 = iseq
-            for cl in classes.items():
-                fnd = False
-                i = 0
-                lst = list(cl[1])
-                while i < len(lst) and (not fnd):
-                    if iseq.find(lst[i]) == 0:
-                        fnd = True
-                        res_patt += " " + str(cl[0])
-                        iseq = iseq[len(lst[i]):].strip(" ")
-                    else:
-                        i += 1
-            if iseq2 == iseq:
-                return 0
-        res.append(1 if res_patt.strip(" ") in patterns else 0)
-    return res
-
+# def evaluate_sequences(sequences, classes, patterns):
+#     res = []
+#     for seq in sequences:
+#         iseq = seq
+#         res_patt = ""
+#         while len(iseq) > 0:
+#             iseq2 = iseq
+#             for cl in classes.items():
+#                 fnd = False
+#                 i = 0
+#                 lst = list(cl[1])
+#                 while i < len(lst) and (not fnd):
+#                     if iseq.find(lst[i]) == 0:
+#                         fnd = True
+#                         res_patt += " " + str(cl[0])
+#                         iseq = iseq[len(lst[i]):].strip(" ")
+#                     else:
+#                         i += 1
+#             if iseq2 == iseq:
+#                 return 0
+#         res.append(1 if res_patt.strip(" ") in patterns else 0)
+#     return res
 
 # evaluate generated sequences with form classes and pattern using str_similarity
 def evaluate_sequences2(sequences, classes, patterns):
@@ -150,6 +154,7 @@ def evaluate_sequences2(sequences, classes, patterns):
     for seq in sequences:
         iseq = seq
         res_patt = ""
+        # translate sequence in a pattern
         while len(iseq) > 0:
             iseq2 = iseq
             fnd = False
@@ -164,9 +169,18 @@ def evaluate_sequences2(sequences, classes, patterns):
                     else:
                         i += 1
             if iseq2 == iseq:
-                res_patt += " " + iseq[0]
-                iseq = iseq[1:].strip(" ")
+                # rewrite symbol, no translation occurred
+                sym = iseq.strip(" ").split(" ", 1)
+                res_patt += " " + sym[0]
+                if len(sym) > 1:
+                    iseq = sym[1]
+                else:
+                    iseq = ""
         # compute similarity
-        res.append(max([metrics.str_similarity(res_patt.strip(" "), x) for x in patterns]))
+        vals = []
+        for x in patterns:
+            vals.append(metrics.str_similarity(res_patt.strip(" "), x))
+        res.append(max(vals))
     return res
+
 

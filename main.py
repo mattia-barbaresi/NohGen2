@@ -4,27 +4,42 @@ import random
 from datetime import datetime
 from shutil import copyfile
 import bcolors as bc
-import numpy as np
 from deap import base, creator, tools
 import plots
 import utils
-from Params import Params
 from markov import mkv
 import deap_ops
 import constants
 
 
-def run_ga(params):
+def run_ga(file_in, random_seed, novelty_method):
+
     # set random seed
-    random.seed(params.random_seed)
+    random.seed(random_seed)
+
+    root_out = "data/out/" + file_in + "/"
+    dir_out = root_out + novelty_method + "_" + datetime.now().strftime("%Y%m%d-%H.%M.%S") + "/"
+
+    # Create target dir if don't exist
+    if not os.path.exists(root_out):
+        os.mkdir(root_out)
+    # Create dir_out if don't exist
+    if not os.path.exists(dir_out):
+        os.mkdir(dir_out)
+    else:
+        print("Directory ", dir_out, "already exists")
+
+    # read input model and form classes
+    # for generation and evaluation of individuals
+    mfi = "data/models/" + file_in
+    if os.path.exists(mfi):
+        tps, classes, patterns, gen_sequence_length = mkv.load_model(mfi)
+    else:
+        print("ERROR: no model dir")
+        return 0
+
     # time
     start_time = datetime.now()
-    # input, output
-    dir_out, file_in = _create_out_dir(params)
-    # calculate model and form classes for generation and evaluation of individuals
-    sequences = utils.read_from_file(file_in, params.file_in["sep"])
-    fc_model = mkv.compute(sequences, dir_out + "model/")
-    tps, tps_s, classes, patterns = fc_model
 
     # init archive
     archive = []
@@ -33,13 +48,15 @@ def run_ga(params):
     stats = dict()
     stats["const"] = dict()
     stats["const"]["file_in"] = file_in
+    stats["const"]["gen_sequence_length"] = gen_sequence_length
     stats["const"]["NGEN"] = constants.NGEN
     stats["const"]["POP_SIZE"] = constants.POP_SIZE
     stats["const"]["N_ELITE"] = constants.N_ELITE
     stats["const"]["NOV_T_MIN"] = constants.NOV_T_MIN
     stats["const"]["NOV_T_MAX"] = constants.NOV_T_MAX
     stats["const"]["NOV_FIT_THRESH"] = constants.NOV_FIT_THRESH
-    stats["const"]["NOV_ARCH_MIN_DISS"] = constants.NOV_ARCH_MIN_DISS
+    stats["method"] = novelty_method
+
     # for plot
     fits = []
     novs = []
@@ -60,27 +77,25 @@ def run_ga(params):
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.dirInd)
     # GA operators
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-    toolbox.register("mate", tools.cxUniform, indpb=0.3)
-    # toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", tools.mutGaussian, mu=0.5, sigma=0.5, indpb=0.2)
+    # toolbox.register("mate", tools.cxUniform, indpb=0.3)
+    toolbox.register("mate", tools.cxTwoPoint)
+    toolbox.register("mutate", tools.mutGaussian, mu=0.5, sigma=0.5, indpb=0.4)
     # selection
     toolbox.register("selectspea2", tools.selSPEA2)
     # eval
-    toolbox.register("evaluate", lambda x: (deap_ops.eval_fitness(x, tps, classes, patterns), 0))
+    toolbox.register("evaluate", lambda x: (deap_ops.eval_fitness(x, tps, classes, patterns, gen_sequence_length), 0))
 
     # set novelty function
-    if params.novelty_method == "phenotype":
-        toolbox.register("evaluateMulti",
-                         lambda x: deap_ops.eval_fitness_and_novelty_phenotype(x, tps, classes, patterns, archive))
-        stats["method"] = "eval_fitness_and_novelty_phenotype"
-    elif params.novelty_method == "phenotype_ncd":
-        toolbox.register("evaluateMulti",
-                         lambda x: deap_ops.eval_fitness_and_novelty_phenotype_ncd(x, tps, classes, patterns, pop, archive))
-        stats["method"] = "eval_fitness_and_novelty_phenotype_ncd"
-    else:
-        toolbox.register("evaluateMulti",
-                         lambda x: deap_ops.eval_fitness_and_novelty_genotype(x, tps, classes, patterns, pop, archive))
-        stats["method"] = "eval_fitness_and_novelty_genotype"
+    # if novelty_method == "phenotype":
+    #     toolbox.register("evaluateMulti", lambda x: deap_ops.eval_fitness_and_novelty_phenotype(x, tps, classes, patterns, archive, gen_sequence_length))
+    #     stats["method"] = "eval_fitness_and_novelty_phenotype"
+    # elif novelty_method == "phenotype_ncd":
+    #     toolbox.register("evaluateMulti",
+    #                      lambda x: deap_ops.eval_fitness_and_novelty_phenotype_ncd(x, tps, classes, patterns, pop,
+    #                                                                                archive, gen_sequence_length))
+    #     stats["method"] = "eval_fitness_and_novelty_phenotype_ncd"
+    # else:
+    toolbox.register("evaluateMulti", lambda x: deap_ops.eval_fitness_and_novelty_genotype(x, tps, classes, patterns, pop, archive, gen_sequence_length))
 
     # decorators for normalizing individuals
     toolbox.decorate("mate", deap_ops.normalize_individuals())
@@ -99,16 +114,18 @@ def run_ga(params):
         stats[g] = dict()
 
         # novelty search: choose evaluate function (fitness or multi)
-        if feasible_individuals >= constants.NOV_T_MAX:
-            # fitness + novelty
-            evaluation_function = toolbox.evaluateMulti
-        elif feasible_individuals <= constants.NOV_T_MIN:
-            # fitness
-            evaluation_function = toolbox.evaluate
+        if novelty_method.find("fitness_only") == -1:
+            if feasible_individuals >= constants.NOV_T_MAX:
+                # fitness + novelty
+                evaluation_function = toolbox.evaluateMulti
+            elif feasible_individuals <= constants.NOV_T_MIN:
+                # fitness
+                evaluation_function = toolbox.evaluate
 
         ###################################################################
 
         # EVALUATION
+        # t1 = datetime.now()
         feasible_individuals = 0
         fit_values = list(map(evaluation_function, pop))
         for ind, fit in zip(pop, fit_values):
@@ -116,6 +133,7 @@ def run_ga(params):
             # count feasible individuals for novelty search
             if fit[0] > constants.NOV_FIT_THRESH:
                 feasible_individuals = feasible_individuals + 1
+        # print("Eval... time: ", (datetime.now() - t1).total_seconds(), "s.")
 
         # SELECTION
         offspring = list(map(toolbox.clone, toolbox.selectspea2(pop, k=constants.POP_SIZE - constants.N_ELITE)))
@@ -124,35 +142,51 @@ def run_ga(params):
         random.shuffle(offspring)
 
         # CROSSOVER
-        for child1, child2 in zip(offspring[::2], offspring[1::2]):
+        def _cross_over(ind1,ind2):
             if random.random() < constants.CXPB:
-                toolbox.mate(child1, child2)
-                del child1.fitness.values
-                del child2.fitness.values
+                toolbox.mate(ind1, ind2)
+                del ind1.fitness.values
+                del ind2.fitness.values
+        toolbox.map(_cross_over, zip(offspring[::2], offspring[1::2]))
+
+        # for child1, child2 in zip(offspring[::2], offspring[1::2]):
+        #     if random.random() < constants.CXPB:
+        #         toolbox.mate(child1, child2)
+        #         del child1.fitness.values
+        #         del child2.fitness.values
 
         # MUTATION
-        for mutant in offspring:
+        def _mutation(mutant):
             if random.random() < constants.MUTPB:
                 toolbox.mutate(mutant)
                 del mutant.fitness.values
+        toolbox.map(_mutation, offspring)
+
+        # for mutant in offspring:
+        #     if random.random() < constants.MUTPB:
+        #         toolbox.mutate(mutant)
+        #         del mutant.fitness.values
 
         # Evaluate the individuals with an invalid fitness
+        # t2 = datetime.now()
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         values = toolbox.map(evaluation_function, invalid_ind)
         for ind, fit in zip(invalid_ind, values):
             ind.fitness.values = fit
+        # print("Eval invalid...", "time: " + str((datetime.now() - t2).total_seconds()))
 
         # new pop
         pop[:] = elite + offspring
-
         ###################################################################
         # SAVE STATISTICS
 
         # print used method
         # if evaluation_function == toolbox.evaluate:
-        #     print(g, ":", bc.PASS + "F" + bc.ENDC, "fi=" + str(feasible_individuals), "a=" + str(len(archive)))
+        #     print(g, ":", bc.PASS + "F" + bc.ENDC, "fi=" + str(feasible_individuals), "a=" + str(len(archive)),
+        #           "time: " + str((datetime.now() - t1).total_seconds()))
         # elif evaluation_function == toolbox.evaluateMulti:
-        #     print(g, ":", bc.BLUE + "H" + bc.ENDC, "fi=" + str(feasible_individuals), "a=" + str(len(archive)))
+        #     print(g, ":", bc.BLUE + "H" + bc.ENDC, "fi=" + str(feasible_individuals), "a=" + str(len(archive)),
+        #           "time: " + str((datetime.now() - t1).total_seconds()))
         # else:
         #     print("FATAL ERROR: NO METHOD FOUND")
 
@@ -168,42 +202,40 @@ def run_ga(params):
         stats[g]["fitness"] = res[:]
         stats[g]["archive"] = archive[:]
 
+    # end ga
+
     ###############################################################
     #                   OUT, PLOTS and GRAPHS
     ###############################################################
     stats["time"] = (datetime.now() - start_time).total_seconds()
-    # print("time elapsed :", stats["time"], "sec.")
+
+    bests = toolbox.selectspea2(pop, k=3)
+    bb_stats = dict()
+    for i,bb in enumerate(bests):
+        bb_stats[i] = dict()
+        bb_stats[i]["individual"] = bb
+        bb_stats[i]["fit"] = bb.fitness.values
+        bb_stats[i]["seqs"] = mkv.generate_with_weights(
+            tps=tps, weights=bb, n_seq=constants.NUM_SEQS, occ_per_seq=gen_sequence_length, start_pool=classes["sp"]
+        )
 
     # for ind in pop:
     #     # if ind.fitness.values[0] > 0.4:
     #     print(np.round(ind, 2), "->", ind.fitness.values)
 
+    print("time elapsed :", stats["time"], "sec.")
+
+    # save generated sequences
+    with open(dir_out + "generated.json", "w") as fp:
+        json.dump(bb_stats, fp, default=mkv.serialize_sets)
+
     # save stats
     with open(dir_out + "stats.json", "w") as fp:
         json.dump(stats, fp, default=mkv.serialize_sets)
 
-    plots.plot_tps(dir_out, tps_s)
     plots.plot_fits(dir_out, constants.NGEN, fits, novs, stats["method"])
     plots.plot_data(dir_out, constants.NGEN, fits, novs, arch_s, stats["method"])
 
 
-# creates output dirs and files
-def _create_out_dir(params):
-    file_in = "data/" + params.file_in["name"] + ".txt"
-    root_out = "data/out/" + params.novelty_method + "_" + datetime.now().strftime("%Y%m%d-%H.%M.%S") + "/"
-    dir_out = root_out + params.file_in["name"] + "_" + str(params.random_seed) + "/"
-
-    # Create target dir if don't exist
-    if not os.path.exists(root_out):
-        os.mkdir(root_out)
-    # Create dir_out if don't exist
-    if not os.path.exists(dir_out):
-        os.mkdir(dir_out)
-    else:
-        print("Directory ", dir_out, "already exists")
-    copyfile(file_in, dir_out + params.file_in["name"] + ".txt")
-    return dir_out, file_in
-
-
 if __name__ == "__main__":
-    run_ga(Params(file_in={"name":"all_songs_in_G","sep":""}, random_seed=7, novelty_method="genotype"))
+    run_ga("input_7_0.75_1.2_3_4",7,"genotype")
