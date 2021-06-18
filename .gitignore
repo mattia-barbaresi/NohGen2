@@ -139,6 +139,4 @@ data/out/*
 data/out*/
 data/out_POC/*
 
-# temporary
-data/models/*
 
