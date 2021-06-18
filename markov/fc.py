@@ -123,64 +123,64 @@ def classes_patterns(sequences, classes):
     return list(res)
 
 
+def find_in_class(seq, classes):
+    for cl in classes.items():
+        i = 0
+        lst = list(cl[1])
+        while i < len(lst):
+            if seq.find(lst[i]) == 0:
+                return cl[0], lst[i]
+            else:
+                i += 1
+    return -1, -1
+
+
+def sequence2pattern(sequence, classes):
+    pattern = ""
+    iseq = sequence
+    while len(iseq) > 0:
+        cls, val = find_in_class(iseq, classes)
+        if cls != -1:
+            pattern += " " + str(cls)
+            iseq = iseq[len(val):].strip(" ")
+        else:
+            return pattern.strip(" ")
+    return pattern.strip(" ")
+
+
+def sequence2pattern_with_replacement(sequence, classes):
+    pattern = ""
+    iseq = sequence
+    while len(iseq) > 0:
+        cls, val = find_in_class(iseq, classes)
+        if cls != -1:
+            pattern += " " + str(cls)
+            iseq = iseq[len(val):].strip(" ")
+        else:
+            pattern += " \uFFFD"
+            iseq = iseq[2:].strip(" ")
+    return pattern.strip(" ")
+
+
 # evaluate generated sequences with form classes and pattern
 # return 1 if the generated pattern is in patterns set
-# def evaluate_sequences(sequences, classes, patterns):
-#     res = []
-#     for seq in sequences:
-#         iseq = seq
-#         res_patt = ""
-#         while len(iseq) > 0:
-#             iseq2 = iseq
-#             for cl in classes.items():
-#                 fnd = False
-#                 i = 0
-#                 lst = list(cl[1])
-#                 while i < len(lst) and (not fnd):
-#                     if iseq.find(lst[i]) == 0:
-#                         fnd = True
-#                         res_patt += " " + str(cl[0])
-#                         iseq = iseq[len(lst[i]):].strip(" ")
-#                     else:
-#                         i += 1
-#             if iseq2 == iseq:
-#                 return 0
-#         res.append(1 if res_patt.strip(" ") in patterns else 0)
-#     return res
+def evaluate_sequences(sequences, classes, patterns):
+    res = []
+    for seq in sequences:
+        res_patt = sequence2pattern(seq, classes)
+        res.append(1 if res_patt in patterns else 0)
+    return res
+
 
 # evaluate generated sequences with form classes and pattern using str_similarity
 def evaluate_sequences2(sequences, classes, patterns):
     res = []
     for seq in sequences:
-        iseq = seq
-        res_patt = ""
         # translate sequence in a pattern
-        while len(iseq) > 0:
-            iseq2 = iseq
-            fnd = False
-            for cl in classes.items():
-                i = 0
-                lst = list(cl[1])
-                while i < len(lst) and (not fnd):
-                    if iseq.find(lst[i]) == 0:
-                        fnd = True
-                        res_patt += " " + str(cl[0])
-                        iseq = iseq[len(lst[i]):].strip(" ")
-                    else:
-                        i += 1
-            if iseq2 == iseq:
-                # rewrite symbol, no translation occurred
-                sym = iseq.strip(" ").split(" ", 1)
-                res_patt += " " + sym[0]
-                if len(sym) > 1:
-                    iseq = sym[1]
-                else:
-                    iseq = ""
+        res_patt = sequence2pattern_with_replacement(seq, classes)
         # compute similarity
         vals = []
         for x in patterns:
             vals.append(metrics.str_similarity(res_patt.strip(" "), x))
         res.append(max(vals))
     return res
-
-

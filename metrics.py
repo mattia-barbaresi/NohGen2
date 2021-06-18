@@ -1,7 +1,6 @@
-from pyjarowinkler import distance as jw
-import distance
 import numpy as np
 import bz2
+import textdistance
 
 
 # NCD from NohGenerator
@@ -31,16 +30,15 @@ def norm_dissimilarity(ind1, ind2):
 # for phenotype (string - string)
 # similar = 1, dissimilar = 0
 def str_similarity(a, b):
-    a = "".join(a)
-    b = "".join(b)
-    # return (jw.get_jaro_distance(a, b) + 1 - distance.jaccard(a, b)) / 2
-    return 1 - distance.jaccard(a, b)
+    # jacc = textdistance.jaccard(a.split(" "), b.split(" "))
+    # ham = textdistance.hamming.normalized_similarity(a,b)
+    # lev = textdistance.levenshtein.normalized_similarity(a,b)
+    # jw1 = textdistance.jaro_winkler(a,b)
+    # ro = textdistance.ratcliff_obershelp(a,b)
+    # return (textdistance.jaro_winkler(a,b) + 1 - distance.jaccard(a.split(" "), b.split(" ")  )) / 2
+    return textdistance.jaccard(a.split(" "), b.split(" "))
 
 
 # similar = 0, dissimilar = 1
 def str_dissimilarity(a, b):
-    a = "".join(a)
-    b = "".join(b)
     return 1 - str_similarity(a,b)
-
-

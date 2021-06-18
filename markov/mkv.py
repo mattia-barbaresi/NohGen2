@@ -13,7 +13,7 @@ from markov import fc
 pp = pprint.PrettyPrinter(indent=2)
 
 
-# for colored console out_old3
+# for colored console out
 class BColors:
     def __init__(self):
         pass
@@ -542,7 +542,7 @@ def generate_with_weights(tps, weights, voc=None, n_seq=1, occ_per_seq=16, start
     res = []
     # generate n_seq sequences
     for _ns in range(0, n_seq):
-        # pick out_old3 an order
+        # pick out an order
         # order = mc_choice(weights)
         # start symbol
         if start_pool:
@@ -555,14 +555,14 @@ def generate_with_weights(tps, weights, voc=None, n_seq=1, occ_per_seq=16, start
         if voc:
             trans = translate_sequence(str_res, voc)
         while len(trans.split(" ")) < occ_per_seq:
-            # pick out_old3 the order
+            # pick out the order
             order = mc_choice(weights)
             if order == 0:
-                # if order = 0 pick out_old3 a random symbol
+                # if order = 0 pick out a random symbol
                 str_res += " " + mc_choice_dict(tps[0])
             else:
                 i = 0
-                # pick out_old3 the right history (past length due to chosen order)
+                # pick out the right history (past length due to chosen order)
                 sid = " ".join(str_res.split(" ")[-order:])
                 while i < order and (sid not in tps[order - i].keys()):
                     i += 1
@@ -655,7 +655,7 @@ def mc_choice_dict(a_dict):
 # def reweigh(pool, ws):
 #     res = []
 #     np.multiply(a, w)
-#     out2 = [x / ss for x in out_old3]
+#     out2 = [x / ss for x in out2]
 #
 #     return res
 
@@ -814,7 +814,7 @@ def load_model(dir_in):
     return tf, fcl, cpt, al
 
 
-# # for each sequence calculate "markov support" with default min value
+# # for each sequence calculate markov score/support: ascending with default min value
 def sequences_markov_support_with_min_default(sequences, tps):
     _MIN = 0.000000001  # minimum as a 0-like probability
     results = []
@@ -842,7 +842,7 @@ def sequences_markov_support_with_min_default(sequences, tps):
     return results
 
 
-# for each sequence calculate "markov support" with log
+# for each sequence calculate "markov support" using log: ascending with default min value
 def sequences_markov_support_log(sequences, tps):
     _MIN = 0.000000001  # minimum as a 0-like probability
     results = []
@@ -870,8 +870,8 @@ def sequences_markov_support_log(sequences, tps):
     return results
 
 
-# for each sequence calculate "markov support" with switches
-def sequences_markov_support_with_switches(sequences, tps, weights=[1, 1, 1, 1, 1, 1]):
+# for each sequence calculate "markov support" with switches: ascending and descending, with weights
+def sequences_markov_support_with_switches(sequences, tps, weights):
     results = []
     max_ord = max(tps.keys())
     for seq in sequences:
@@ -884,19 +884,21 @@ def sequences_markov_support_with_switches(sequences, tps, weights=[1, 1, 1, 1, 
                 # set max order limit
                 iord = i if i <= max_ord else max_ord
                 past = " ".join(arr_seq[:i][-iord:]).strip(" ")
-                while (iord >= 0) and (past not in tps[iord].keys() or sym not in tps[iord][past].keys()):
+                while (iord > 0) and (past not in tps[iord].keys() or sym not in tps[iord][past].keys()):
                     iord = iord - 1
                     past = " ".join(arr_seq[:i][-iord:])
                 if iord > 0:
                     res *= float(weights[iord] * tps[iord][past][sym])
                 else:  # single symbol
+                    iord = iord - 1
+                    past = " ".join(arr_seq[:i][-iord:])
                     res *= float(weights[0] * tps[0][sym])
         results.append(res)
     return results
 
 
-# for each sequence calculate "markov support" per order
-def sequences_markov_support_per_order(sequences, tps):
+# for each sequence calculate "markov support" for each order: with min value and weights per order
+def sequences_markov_support_per_order(sequences, tps, weights):
     _MIN = 0.000000001  # minimum as a 0-like probability
     results = dict()
     for ind,seq in enumerate(sequences):
@@ -906,12 +908,12 @@ def sequences_markov_support_per_order(sequences, tps):
             res = 1.0
             for i,ch in enumerate(arr_seq):
                 if iord == 0:  # single symbol
-                    res = float(tps[0][ch])  # res *= tps[0][ch]
+                    res = weights[0] * float(tps[0][ch])  # res *= tps[0][ch]
                 else:
                     if i >= iord:
                         past = " ".join(arr_seq[:i][-iord:])
                         if (past in tps[iord].keys()) and (ch in tps[iord][past]):
-                            res *= float(tps[iord][past][ch])
+                            res *= weights[iord] * float(tps[iord][past][ch])
                         else:
                             res *= _MIN
             results[ind][iord] = res
