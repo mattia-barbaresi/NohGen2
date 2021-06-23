@@ -757,13 +757,13 @@ def compute_poc(seqs, dir_name="noDir", filename="noName", write_to_file=True):
     #########################################################################
     # form class
     segmented = chunks_detection(seqs, chunks, write_fun=chunk_segmentation)
-    fc_seqs = segmented[3]
+    fc_seqs = segmented[4]
     # fc sloow
-    dc = fc.distributional_context(fc_seqs, 3)
+    dc = fc.distributional_context(fc_seqs, 5)
     # print("---- dc ---- ")
     # pp.pprint(dc)
     classes = dict()
-    classes["fc"] = fc.form_classes(dc, 1.0)
+    classes["fc"] = fc.form_classes(dc, 1.2)
     class_patt = fc.classes_patterns(fc_seqs, classes["fc"])
     classes["sp"] = fc.start_words(classes["fc"], class_patt)
 
@@ -816,7 +816,7 @@ def load_model(dir_in):
 
 # # for each sequence calculate markov score/support: ascending with default min value
 def sequences_markov_support_with_min_default(sequences, tps):
-    _MIN = 0.000000001  # minimum as a 0-like probability
+    _MIN = 0.0001  # minimum as a 0-like probability
     results = []
     max_ord = max(tps.keys())
     for seq in sequences:
@@ -844,7 +844,7 @@ def sequences_markov_support_with_min_default(sequences, tps):
 
 # for each sequence calculate "markov support" using log: ascending with default min value
 def sequences_markov_support_log(sequences, tps):
-    _MIN = 0.000000001  # minimum as a 0-like probability
+    _MIN = 0.0001  # minimum as a 0-like probability
     results = []
     max_ord = max(tps.keys())
     for seq in sequences:
@@ -867,6 +867,33 @@ def sequences_markov_support_log(sequences, tps):
                     # no past in level, thus a transition-miss happened in the immediately past step
                     res += - math.log(_MIN)
         results.append(res)
+    return results
+
+
+def sequences_markov_support_entropy(sequences, tps):
+    _MIN = 0.0001  # minimum as a 0-like probability
+    results = []
+    max_ord = max(tps.keys())
+    for seq in sequences:
+        arr_seq = seq.strip(" ").split(" ")
+        res = 0
+        for i, ch in enumerate(arr_seq):
+            if i == 0:  # single symbol
+                res = - math.log(float(tps[0][ch])) * float(tps[0][ch]) # res *= tps[0][ch]
+            else:
+                # set max order limit
+                iord = i if i <= max_ord else max_ord
+                past = " ".join(arr_seq[:i][-iord:])
+                if past in tps[iord].keys():
+                    if ch in tps[iord][past]:
+                        res += - math.log(float(tps[iord][past][ch])) * float(tps[iord][past][ch])
+                    else:
+                        # no symbol transition from that past in level
+                        res += - math.log(_MIN) * _MIN
+                else:
+                    # no past in level, thus a transition-miss happened in the immediately past step
+                    res += - math.log(_MIN) * _MIN
+        results.append(res/math.log(len(seq)))
     return results
 
 
@@ -899,7 +926,7 @@ def sequences_markov_support_with_switches(sequences, tps, weights):
 
 # for each sequence calculate "markov support" for each order: with min value and weights per order
 def sequences_markov_support_per_order(sequences, tps, weights):
-    _MIN = 0.000000001  # minimum as a 0-like probability
+    _MIN = 0.0001  # minimum as a 0-like probability
     results = dict()
     for ind,seq in enumerate(sequences):
         results[ind] = dict()

@@ -8,27 +8,27 @@ import generate_models
 from Parameters import Parameters
 from main import run_ga
 import multiprocessing as mp
+import argparse
 
 
 def _apply_fun(x):
     # fname, ranseed, novmeth
-    run_ga(x[0],x[1],x[2])
+    run_ga(x[0], x[1], x[2])
 
 
 def main():
     data = []
-    pool = mp.Pool(mp.cpu_count())
+    pool = mp.Pool(mp.cpu_count()-1)
     start_time = datetime.now()
 
-    seeds = [7, 43]
-    methods = ["genotype_jacc"]
+    seeds = [7]
+    methods = ["multi_log_genotype"]
     files = [
         # {"name": "input", "sep": ""},
         # {"name": "input2", "sep": ""},
-        # {"name": "irish", "sep": " "},
+        {"name": "irish", "sep": " "},
         {"name": "bicinia", "sep": " "},
         {"name": "all_irish-notes_and_durations-abc", "sep": " "},
-
         # {"name": "all_songs_in_G", "sep": ""}, # generated only for seed = 7
     ]
 

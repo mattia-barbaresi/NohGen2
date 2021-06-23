@@ -1,3 +1,5 @@
+import math
+
 import constants
 import numpy as np
 import metrics
@@ -44,8 +46,8 @@ def eval_fitness(individual, tps, classes, patterns, gen_seq_len):
     """
     sequences = gen_sequences(individual, tps, classes, gen_seq_len)
     # use similarity instead of perfect match
-    res = fc.evaluate_sequences2(sequences, classes["fc"], patterns)
-    # res = mkv.sequences_markov_support2(sequences, tps)
+    # res = fc.evaluate_sequences2(sequences, classes["fc"], patterns)
+    res = mkv.sequences_markov_support_log(sequences, tps)
 
     return sum(res) / constants.NUM_SEQS
 

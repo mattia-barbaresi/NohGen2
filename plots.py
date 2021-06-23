@@ -37,7 +37,6 @@ def plot_fits(dir_out, ngen, fits, novs, title):
     plt.figure()
     plt.title(title)
     plt.xlabel('ngen')
-    plt.yticks(np.linspace(0, 1, 11))
     plt.plot(range(0, ngen), fits, label="fitness")
     plt.plot(range(0, ngen), novs, label="novelty")
     plt.legend()
@@ -58,7 +57,7 @@ def plot_data(dir_out, ngen, fits, novs, narchs, title):
     par1.axis["right"].toggle(all=True)
 
     host.set_xlim(0, ngen)
-    host.set_ylim(0, 1)
+    host.set_ylim(0, max(fits))
     par1.set_xlim(0, ngen)
     par1.set_ylim(0, max(narchs) + 1)
 
@@ -75,4 +74,18 @@ def plot_data(dir_out, ngen, fits, novs, narchs, title):
     par1.axis["right"].label.set_color(p1.get_color())
 
     plt.savefig(dir_out + "fig2", bbox_inches="tight")
+    plt.clf()
+
+
+# plot pareto like
+def plot_pareto(dir_out, pop, bests, title):
+    plt.figure()
+    plt.title(title)
+    plt.xlabel('novelty')
+    plt.ylabel('fitness')
+    plt.plot(pop["novs"], pop["fits"],'gray', label="population")
+    plt.scatter(bests["novs"], bests["fits"], label="selected", c="red")
+    plt.legend()
+    # plt.tight_layout()
+    plt.savefig(dir_out + "pareto", bbox_inches="tight")
     plt.clf()

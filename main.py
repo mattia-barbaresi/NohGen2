@@ -77,17 +77,19 @@ def run_ga(file_in, random_seed, novelty_method):
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.dirInd)
     # GA operators
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-    # toolbox.register("mate", tools.cxUniform, indpb=0.3)
-    toolbox.register("mate", tools.cxTwoPoint)
+    toolbox.register("mate", tools.cxUniform, indpb=0.3)
+    # toolbox.register("mate", tools.cxTwoPoint)
     toolbox.register("mutate", tools.mutGaussian, mu=0.5, sigma=0.5, indpb=0.4)
     # selection
     toolbox.register("selectspea2", tools.selSPEA2)
     # eval
-    toolbox.register("evaluate", lambda x: (deap_ops.eval_fitness(x, tps, classes, patterns, gen_sequence_length), 0))
+    # toolbox.register("evaluate", lambda x: (deap_ops.eval_fitness(x, tps, classes, patterns, gen_sequence_length), 0))
 
     # set novelty function
     # if novelty_method == "phenotype":
-    #     toolbox.register("evaluateMulti", lambda x: deap_ops.eval_fitness_and_novelty_phenotype(x, tps, classes, patterns, archive, gen_sequence_length))
+    #     toolbox.register("evaluateMulti",
+    #                       lambda x: deap_ops.eval_fitness_and_novelty_phenotype(x, tps, classes, patterns,
+    #                                                                                archive, gen_sequence_length))
     #     stats["method"] = "eval_fitness_and_novelty_phenotype"
     # elif novelty_method == "phenotype_ncd":
     #     toolbox.register("evaluateMulti",
@@ -102,8 +104,8 @@ def run_ga(file_in, random_seed, novelty_method):
     toolbox.decorate("mutate", deap_ops.normalize_individuals())
 
     # evaluation function: (fitness or fitness-novelty)
-    evaluation_function = toolbox.evaluate
-    feasible_individuals = 0
+    evaluation_function = toolbox.evaluateMulti
+    # feasible_individuals = 0
     # create the population
     pop = toolbox.population(n=constants.POP_SIZE)
 
@@ -114,25 +116,25 @@ def run_ga(file_in, random_seed, novelty_method):
         stats[g] = dict()
 
         # novelty search: choose evaluate function (fitness or multi)
-        if novelty_method.find("fitness_only") == -1:
-            if feasible_individuals >= constants.NOV_T_MAX:
-                # fitness + novelty
-                evaluation_function = toolbox.evaluateMulti
-            elif feasible_individuals <= constants.NOV_T_MIN:
-                # fitness
-                evaluation_function = toolbox.evaluate
+        # if novelty_method.find("fitness_only") == -1:
+        #     if feasible_individuals >= constants.NOV_T_MAX:
+        #         # fitness + novelty
+        #         evaluation_function = toolbox.evaluateMulti
+        #     elif feasible_individuals <= constants.NOV_T_MIN:
+        #         # fitness
+        #         evaluation_function = toolbox.evaluate
 
         ###################################################################
 
         # EVALUATION
         # t1 = datetime.now()
-        feasible_individuals = 0
+        # feasible_individuals = 0
         fit_values = list(map(evaluation_function, pop))
         for ind, fit in zip(pop, fit_values):
             ind.fitness.values = fit
             # count feasible individuals for novelty search
-            if fit[0] > constants.NOV_FIT_THRESH:
-                feasible_individuals = feasible_individuals + 1
+            # if fit[0] > constants.NOV_FIT_THRESH:
+            #     feasible_individuals = feasible_individuals + 1
         # print("Eval... time: ", (datetime.now() - t1).total_seconds(), "s.")
 
         # SELECTION
@@ -197,7 +199,8 @@ def run_ga(file_in, random_seed, novelty_method):
 
         # save stats
         # in case use copy.deepcopy()
-        stats[g]["method"] = "F" if evaluation_function == toolbox.evaluate else "H"
+        # stats[g]["method"] = "F" if evaluation_function == toolbox.evaluate else "H"
+        stats[g]["method"] = "H"
         stats[g]["pop"] = pop[:]
         stats[g]["fitness"] = res[:]
         stats[g]["archive"] = archive[:]
@@ -209,12 +212,19 @@ def run_ga(file_in, random_seed, novelty_method):
     ###############################################################
     stats["time"] = (datetime.now() - start_time).total_seconds()
 
-    bests = toolbox.selectspea2(pop, k=3)
+    bests = toolbox.selectspea2(pop, k=5)
+    pop_plot = {"fits": [], "novs": []}
+    for pb in pop:
+        pop_plot["fits"].append(pb.fitness.values[0])
+        pop_plot["novs"].append(pb.fitness.values[1])
     bb_stats = dict()
+    best_plot = {"fits":[], "novs":[]}
     for i,bb in enumerate(bests):
         bb_stats[i] = dict()
         bb_stats[i]["individual"] = bb
         bb_stats[i]["fit"] = bb.fitness.values
+        best_plot["fits"].append(bb.fitness.values[0])
+        best_plot["novs"].append(bb.fitness.values[1])
         bb_stats[i]["seqs"] = mkv.generate_with_weights(
             tps=tps, weights=bb, n_seq=constants.NUM_SEQS, occ_per_seq=gen_sequence_length, start_pool=classes["sp"]
         )
@@ -235,7 +245,8 @@ def run_ga(file_in, random_seed, novelty_method):
 
     plots.plot_fits(dir_out, constants.NGEN, fits, novs, stats["method"])
     plots.plot_data(dir_out, constants.NGEN, fits, novs, arch_s, stats["method"])
+    plots.plot_pareto(dir_out, pop_plot, best_plot, stats["method"])
 
 
 if __name__ == "__main__":
-    run_ga("input_7_0.75_1.2_3_4",7,"genotype")
+    run_ga("bicinia_7_0.85_1.2_5_4",7,"multi_log_genotype")
