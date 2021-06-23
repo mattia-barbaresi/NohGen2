@@ -30,6 +30,7 @@ def plot_tps(dir_out, tf_seqs, file_name=""):
         fn = "_" + file_name
     fig.savefig(dir_out + "tps" + fn, bbox_inches="tight")
     plt.clf()
+    plt.close()
 
 
 # plot fit
@@ -43,11 +44,11 @@ def plot_fits(dir_out, ngen, fits, novs, title):
     # plt.tight_layout()
     plt.savefig(dir_out + "fits", bbox_inches="tight")
     plt.clf()
+    plt.close()
 
 
 # plot
 def plot_data(dir_out, ngen, fits, novs, narchs, title):
-    plt.clf()
     host = host_subplot(111, axes_class=axisartist.Axes)
     host.set_title(title)
     par1 = host.twinx()
@@ -75,6 +76,7 @@ def plot_data(dir_out, ngen, fits, novs, narchs, title):
 
     plt.savefig(dir_out + "fig2", bbox_inches="tight")
     plt.clf()
+    plt.close()
 
 
 # plot pareto like
@@ -89,3 +91,5 @@ def plot_pareto(dir_out, pop, bests, title):
     # plt.tight_layout()
     plt.savefig(dir_out + "pareto", bbox_inches="tight")
     plt.clf()
+    plt.close()
+
