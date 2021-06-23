@@ -85,7 +85,7 @@ def plot_pareto(dir_out, pop, bests, title):
     plt.title(title)
     plt.xlabel('novelty')
     plt.ylabel('fitness')
-    plt.plot(pop["novs"], pop["fits"],'gray', label="population")
+    plt.scatter(pop["novs"], pop["fits"], label="population", c='gray')
     plt.scatter(bests["novs"], bests["fits"], label="selected", c="red")
     plt.legend()
     # plt.tight_layout()
