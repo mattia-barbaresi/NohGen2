@@ -81,7 +81,8 @@ def run_ga(file_in, random_seed, novelty_method):
     # toolbox.register("mate", tools.cxTwoPoint)
     toolbox.register("mutate", tools.mutGaussian, mu=0.5, sigma=0.5, indpb=0.4)
     # selection
-    toolbox.register("selectspea2", tools.selSPEA2)
+    toolbox.register("select", tools.selSPEA2)
+    # toolbox.register("select", tools.selNSGA2)
     # eval
     # toolbox.register("evaluate", lambda x: (deap_ops.eval_fitness(x, tps, classes, patterns, gen_sequence_length), 0))
 
@@ -138,7 +139,7 @@ def run_ga(file_in, random_seed, novelty_method):
         # print("Eval... time: ", (datetime.now() - t1).total_seconds(), "s.")
 
         # SELECTION
-        offspring = list(map(toolbox.clone, toolbox.selectspea2(pop, k=constants.POP_SIZE - constants.N_ELITE)))
+        offspring = list(map(toolbox.clone, toolbox.select(pop, k=constants.POP_SIZE - constants.N_ELITE)))
         elite = list(map(toolbox.clone, offspring[:constants.N_ELITE]))  # Select the elite
 
         random.shuffle(offspring)
@@ -212,13 +213,15 @@ def run_ga(file_in, random_seed, novelty_method):
     ###############################################################
     stats["time"] = (datetime.now() - start_time).total_seconds()
 
-    bests = toolbox.selectspea2(pop, k=5)
     pop_plot = {"fits": [], "novs": []}
+    best_plot = {"fits":[], "novs":[]}
+    bb_stats = dict()
+
     for pb in pop:
         pop_plot["fits"].append(pb.fitness.values[0])
         pop_plot["novs"].append(pb.fitness.values[1])
-    bb_stats = dict()
-    best_plot = {"fits":[], "novs":[]}
+
+    bests = toolbox.select(pop, k=7)
     for i,bb in enumerate(bests):
         bb_stats[i] = dict()
         bb_stats[i]["individual"] = bb
@@ -243,10 +246,10 @@ def run_ga(file_in, random_seed, novelty_method):
     with open(dir_out + "stats.json", "w") as fp:
         json.dump(stats, fp, default=mkv.serialize_sets)
 
-    plots.plot_fits(dir_out, constants.NGEN, fits, novs, stats["method"])
+    # plots.plot_fits(dir_out, constants.NGEN, fits, novs, stats["method"])
     plots.plot_data(dir_out, constants.NGEN, fits, novs, arch_s, stats["method"])
     plots.plot_pareto(dir_out, pop_plot, best_plot, stats["method"])
 
 
 if __name__ == "__main__":
-    run_ga("bicinia_7_0.85_1.2_5_4",7,"multi_log_genotype")
+    run_ga("all_songs_in_G_7_0.75_1.0_3_3", 7, "multi_log_genotype")

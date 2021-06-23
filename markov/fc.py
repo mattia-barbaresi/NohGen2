@@ -50,6 +50,16 @@ def start_words_old(dist_ctx):
     return res
 
 
+def start_classes(classes, patterns):
+    # print initial and ending classes
+    res = set()
+    # return members of starting classes in patterns
+    pti = [x.strip(" ").split(" ")[0] for x in patterns]
+    for i in pti:
+        res.update(classes[int(i)])
+    return res
+
+
 def start_words(classes, patterns):
     # print initial and ending classes
     res = set()

@@ -4,7 +4,7 @@
 IND_SIZE = 6
 NGEN = 50  # number of generations
 POP_SIZE = 50  # population size
-N_ELITE = 5  # spea2
+N_ELITE = 5
 # novelty search
 MAX_ARCH = 5
 NOV_FIT_THRESH = 0.75
