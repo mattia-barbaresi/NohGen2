@@ -4,6 +4,7 @@ import random
 from datetime import datetime
 from shutil import copyfile
 import bcolors as bc
+import numpy
 from deap import base, creator, tools
 import plots
 import utils
@@ -16,6 +17,7 @@ def run_ga(file_in, random_seed, novelty_method):
 
     # set random seed
     random.seed(random_seed)
+    numpy.random.seed(random_seed)
 
     root_out = "data/out/" + file_in + "/"
     dir_out = root_out + novelty_method + "_" + datetime.now().strftime("%Y%m%d-%H.%M.%S") + "/"
@@ -145,30 +147,17 @@ def run_ga(file_in, random_seed, novelty_method):
         random.shuffle(offspring)
 
         # CROSSOVER
-        def _cross_over(ind1,ind2):
+        for child1, child2 in zip(offspring[::2], offspring[1::2]):
             if random.random() < constants.CXPB:
-                toolbox.mate(ind1, ind2)
-                del ind1.fitness.values
-                del ind2.fitness.values
-        toolbox.map(_cross_over, zip(offspring[::2], offspring[1::2]))
-
-        # for child1, child2 in zip(offspring[::2], offspring[1::2]):
-        #     if random.random() < constants.CXPB:
-        #         toolbox.mate(child1, child2)
-        #         del child1.fitness.values
-        #         del child2.fitness.values
+                toolbox.mate(child1, child2)
+                del child1.fitness.values
+                del child2.fitness.values
 
         # MUTATION
-        def _mutation(mutant):
+        for mutant in offspring:
             if random.random() < constants.MUTPB:
                 toolbox.mutate(mutant)
                 del mutant.fitness.values
-        toolbox.map(_mutation, offspring)
-
-        # for mutant in offspring:
-        #     if random.random() < constants.MUTPB:
-        #         toolbox.mutate(mutant)
-        #         del mutant.fitness.values
 
         # Evaluate the individuals with an invalid fitness
         # t2 = datetime.now()
@@ -252,4 +241,4 @@ def run_ga(file_in, random_seed, novelty_method):
 
 
 if __name__ == "__main__":
-    run_ga("all_songs_in_G_7_0.75_1.0_3_3", 7, "multi_log_genotype")
+    run_ga("input_7_0.75_1.0_3_3", 7, "multi_log_genotype")
