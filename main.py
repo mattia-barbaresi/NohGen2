@@ -69,11 +69,11 @@ def run_ga(file_in, random_seed, novelty_method):
     toolbox = base.Toolbox()
     # init DEAP fitness and individual for tournament in novelty search
     if not hasattr(creator, "FitnessMaxTN"):
-        creator.create("FitnessMaxTN", base.Fitness, weights=(1.0,))
+        creator.create("FitnessMaxTN", base.Fitness, weights=(-1.0,))
         creator.create("IndividualTN", list, fitness=creator.FitnessMaxTN)
     # init DEAP fitness and individual
     if not hasattr(creator, "FitnessMax"):
-        creator.create("FitnessMax", base.Fitness, weights=(1.0, 1.0))
+        creator.create("FitnessMax", base.Fitness, weights=(-1.0, 1.0))
         creator.create("Individual", list, fitness=creator.FitnessMax)
     toolbox.register("dirInd", deap_ops.create_individual)
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.dirInd)
@@ -84,7 +84,6 @@ def run_ga(file_in, random_seed, novelty_method):
     toolbox.register("mutate", tools.mutGaussian, mu=0.5, sigma=0.5, indpb=0.4)
     # selection
     toolbox.register("select", tools.selSPEA2)
-    # toolbox.register("select", tools.selNSGA2)
     # eval
     # toolbox.register("evaluate", lambda x: (deap_ops.eval_fitness(x, tps, classes, patterns, gen_sequence_length), 0))
 
@@ -241,4 +240,4 @@ def run_ga(file_in, random_seed, novelty_method):
 
 
 if __name__ == "__main__":
-    run_ga("input_7_0.75_1.0_3_3", 7, "multi_log_genotype")
+    run_ga("all_songs_in_G_7_0.75_1.0_3_3", 7, "multi_log_genotype")
