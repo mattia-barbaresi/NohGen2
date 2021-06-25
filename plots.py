@@ -2,6 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits import axisartist
 from mpl_toolkits.axes_grid1 import host_subplot
+import mpl_toolkits.axisartist as AA
 
 
 # plot fit
@@ -47,34 +48,46 @@ def plot_fits(dir_out, ngen, fits, novs, title):
     plt.close()
 
 
-# plot
 def plot_data(dir_out, ngen, fits, novs, narchs, title):
     host = host_subplot(111, axes_class=axisartist.Axes)
     host.set_title(title)
+    plt.subplots_adjust(right=0.85)
+
     par1 = host.twinx()
-    new_fixed_axis = par1.get_grid_helper().new_fixed_axis
-    par1.axis["right"] = new_fixed_axis(loc="right", axes=par1, offset=(20, 0))
+    par2 = host.twinx()
 
-    par1.axis["right"].toggle(all=True)
+    new_fixed_axis = par2.get_grid_helper().new_fixed_axis
+    par1.axis["right"] = new_fixed_axis(loc="right", axes=par1,
+                                        offset=(10, 0))
+    par2.axis["right"] = new_fixed_axis(loc="right", axes=par2,
+                                        offset=(70, 0))
 
-    host.set_xlim(0, ngen)
-    host.set_ylim(0, max(fits))
-    par1.set_xlim(0, ngen)
-    par1.set_ylim(0, max(narchs) + 1)
+    par2.axis["right"].toggle(all=True)
+
+    tl = par2.xaxis.majorTicks[0].tick1line.get_markersize()
+    host.set_xlim(0, ngen+1)
+    host.set_ylim(0, max(fits) + tl)
 
     host.set_xlabel("ngen")
-    host.set_ylabel("values")
-    par1.set_ylabel("narchiv")
 
-    host.plot(range(0, ngen), fits, label="fitness")
-    host.plot(range(0, ngen), novs, label="novelty")
-    p1, = par1.plot(range(0, ngen), narchs, '--', label="narch")
+    host.set_ylabel("log markov score")
+    par1.set_ylabel("novelty")
+    par2.set_ylabel("# archive")
+
+    p1, = host.plot(range(0, ngen), fits, label="log markov score")
+    p2, = par1.plot(range(0, ngen), novs, label="novelty")
+    p3, = par2.plot(range(0, ngen), narchs, '--', label="# archive")
+
+    par1.set_ylim(0, 1)
+    par2.set_ylim(0, max(narchs) + 1)
 
     host.legend()
 
-    par1.axis["right"].label.set_color(p1.get_color())
+    host.axis["left"].label.set_color(p1.get_color())
+    par1.axis["right"].label.set_color(p2.get_color())
+    par2.axis["right"].label.set_color(p3.get_color())
 
-    plt.savefig(dir_out + "fig2", bbox_inches="tight")
+    plt.savefig(dir_out + "results", bbox_inches="tight")
     plt.clf()
     plt.close()
 
@@ -84,7 +97,7 @@ def plot_pareto(dir_out, pop, bests, title):
     plt.figure()
     plt.title(title)
     plt.xlabel('novelty')
-    plt.ylabel('fitness')
+    plt.ylabel('log markov score')
     plt.scatter(pop["novs"], pop["fits"], label="population", c='gray')
     plt.scatter(bests["novs"], bests["fits"], label="selected", c="red")
     plt.legend()

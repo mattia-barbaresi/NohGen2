@@ -2,12 +2,9 @@ import json
 import os
 import random
 from datetime import datetime
-from shutil import copyfile
-import bcolors as bc
 import numpy
 from deap import base, creator, tools
 import plots
-import utils
 from markov import mkv
 import deap_ops
 import constants
@@ -81,7 +78,7 @@ def run_ga(file_in, random_seed, novelty_method):
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("mate", tools.cxUniform, indpb=0.3)
     # toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", tools.mutGaussian, mu=0.5, sigma=0.5, indpb=0.4)
+    toolbox.register("mutate", tools.mutGaussian, mu=0.0, sigma=0.3, indpb=0.4)
     # selection
     toolbox.register("select", tools.selSPEA2)
     # eval
@@ -168,18 +165,12 @@ def run_ga(file_in, random_seed, novelty_method):
 
         # new pop
         pop[:] = elite + offspring
+
+        # delete archive duplicates entries
+        archive = list(set(archive))
+
         ###################################################################
         # SAVE STATISTICS
-
-        # print used method
-        # if evaluation_function == toolbox.evaluate:
-        #     print(g, ":", bc.PASS + "F" + bc.ENDC, "fi=" + str(feasible_individuals), "a=" + str(len(archive)),
-        #           "time: " + str((datetime.now() - t1).total_seconds()))
-        # elif evaluation_function == toolbox.evaluateMulti:
-        #     print(g, ":", bc.BLUE + "H" + bc.ENDC, "fi=" + str(feasible_individuals), "a=" + str(len(archive)),
-        #           "time: " + str((datetime.now() - t1).total_seconds()))
-        # else:
-        #     print("FATAL ERROR: NO METHOD FOUND")
 
         res = [ind.fitness.values for ind in pop]
         fits.append(sum(x[0] for x in res) / constants.POP_SIZE)
@@ -240,4 +231,4 @@ def run_ga(file_in, random_seed, novelty_method):
 
 
 if __name__ == "__main__":
-    run_ga("all_songs_in_G_7_0.75_1.0_3_3", 7, "multi_log_genotype")
+    run_ga("input_43_0.75_1.0_3_3", 43, "multi_log")

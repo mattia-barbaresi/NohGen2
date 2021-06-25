@@ -43,7 +43,7 @@ def archive_assessment(individual, evaluation, archive, dissim_fun=metrics.norm_
         # element and the choreographies in the archive is higher than a threshold
         # arch_dissim =
         if arch_len == 0 or archive_dissim(individual, archive, dissimil_fun=dissim_fun) > constants.NOV_ARCH_MIN_DISS:
-            archive.append(individual)
+            archive.append(tuple(individual))
 
 ########################################################################
 # novelty on phenotype

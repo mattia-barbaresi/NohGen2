@@ -24,9 +24,9 @@ def main():
     seeds = [7]
     methods = ["multi_log_genotype"]
     files = [
-        {"name": "input", "sep": ""},
-        {"name": "input2", "sep": ""},
-        {"name": "irish", "sep": " "},
+        # {"name": "input", "sep": ""},
+        # {"name": "input2", "sep": ""},
+        # {"name": "irish", "sep": " "},
         {"name": "bicinia", "sep": " "},
         {"name": "all_irish-notes_and_durations-abc", "sep": " "},
         {"name": "all_songs_in_G", "sep": ""},  # generated only for seed = 7
