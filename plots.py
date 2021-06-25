@@ -2,7 +2,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits import axisartist
 from mpl_toolkits.axes_grid1 import host_subplot
-import mpl_toolkits.axisartist as AA
 
 
 # plot fit
@@ -81,7 +80,7 @@ def plot_data(dir_out, ngen, fits, novs, narchs, title):
     par1.set_ylim(0, 1)
     par2.set_ylim(0, max(narchs) + 1)
 
-    host.legend()
+    host.legend(loc="lower right")
 
     host.axis["left"].label.set_color(p1.get_color())
     par1.axis["right"].label.set_color(p2.get_color())
@@ -105,4 +104,3 @@ def plot_pareto(dir_out, pop, bests, title):
     plt.savefig(dir_out + "pareto", bbox_inches="tight")
     plt.clf()
     plt.close()
-

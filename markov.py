@@ -8,7 +8,6 @@ from collections import OrderedDict
 
 import numpy as np
 
-from markov import fc
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -274,6 +273,8 @@ def chunk_sequences(seqs, mtp, mkv_thr, orders=[2, 3, 4]):
         list of sequences to analyze
     mtp : dict
         the transitional probabilities dictionary
+    mkv_thr : float
+        the threshold used for segmentation
     orders : list
         orders in dict
     """
@@ -652,194 +653,42 @@ def mc_choice_dict(a_dict):
     return ind
 
 
-# def reweigh(pool, ws):
-#     res = []
-#     np.multiply(a, w)
-#     out2 = [x / ss for x in out2]
-#
-#     return res
-
-
-# def mdl_generate_with_weights(mdl, weights, noccs, init_pool):
-#     res = []
-#     seq = ""
-#     if init_pool:
-#         seq = random.choice(init_pool)
-#     else:
-#         seq = mc_choice_dict(mdl["0th"])
-#     res.append(seq)
-#     # next trans
-#     pool = reweigh(mdl[seq], weights)
-#     for n in range(0,noccs):
-#         res.append()
-#
-#
-# def mdl_generate_with_weights_iter(mdl, weights, ll, init_pool=[]):
-#     n = 100
-#     results = []
-#     for i in range(0,100):
-#         results.append(mdl_generate_with_weights(mdl, weights, ll, init_pool))
-#     return results
-#
-
 # -------------------------------------------------------------------------
 # call fun
-def compute(seqs, params, dir_name="noDir", write_to_file=True):
-    avg_len = sum(map(len, seqs)) / len(seqs)
+def compute(seqs, dir_name="noDir", write_to_file=True):
+    # takes starting symbols
+    sp = set()
+    sp.update([s[0] for s in seqs])
+    # calculates min seqs len
+    min_len = min(map(len, seqs))
     # compute transitions frequencies
     tf = markov_trans_freq(seqs)
-    # count ngrams occurrences
-    # ngrams = ngram_occurrences(seqs)
-    # rewrite seqs with tf
-    tf_seqs = detect_transitions(seqs, tf)
-    # tokenize seqs
-    chunks = chunk_sequences(seqs, tf_seqs, params.mkv_thr)  # for order > 0
-    vocab = dict_to_vocab(chunks)
-    detected = chunks_detection(seqs, chunks)
-    # form class
-    segmented = chunks_detection(seqs, chunks, write_fun=chunk_segmentation)
-    fc_seqs = segmented[params.fc_seg_ord]
-    dc = fc.distributional_context(fc_seqs, params.fc_n_ctx)
-    classes = dict()
-    # fc sloow
-    classes["fc"] = fc.form_classes(dc, params.fc_thr)
-    class_patt = fc.classes_patterns(fc_seqs, classes["fc"])
-    classes["sp"] = fc.start_words(classes["fc"], class_patt)
 
-    #########################################################################
     # write
     if write_to_file:
         if not os.path.exists(dir_name):
             os.mkdir(dir_name)
         with open(dir_name + "tf.json", "w") as fp:
             json.dump(tf, fp)
-        with open(dir_name + "tf_seqs.json", "w") as fp:
-            json.dump(tf_seqs, fp)
-        with open(dir_name + "form_classes.json", "w") as fp:
-            json.dump(classes, fp, default=serialize_sets)
-        with open(dir_name + "class_patterns.json", "w") as fp:
-            json.dump(class_patt, fp, default=serialize_sets)
-        with open(dir_name + "avg_len.json", "w") as fp:
-            json.dump(avg_len, fp, default=serialize_sets)
-        with open(dir_name + "chunks.json", "w") as fp:
-            json.dump(chunks, fp, default=serialize_sets)
-        with open(dir_name + "vocab.json", "w") as fp:
-            json.dump(vocab, fp)
-        with open(dir_name + "detected.json", "w") as fp:
-            json.dump(detected, fp)
-        # with open(dir_name + "segmented.json", "w") as fp:
-        #     json.dump(segmented, fp)
-        # # with open(dir_name + "ngrams.json", "w") as fp:
-        # #     json.dump(ngrams, fp, )
-        # with open(dir_name + "contexts.json", "w") as fp:
-        #     json.dump(dc, fp, default=serialize_sets)
+        with open(dir_name + "start_pool.json", "w") as fp:
+            json.dump(list(sp), fp)
+        with open(dir_name + "min_len.json", "w") as fp:
+            json.dump(min_len, fp, default=serialize_sets)
 
-    return tf, tf_seqs, classes, class_patt
-
-
-# call fun for POCs
-def compute_poc(seqs, dir_name="noDir", filename="noName", write_to_file=True):
-    # create model for generation
-    mdl = create_generation_model(seqs)
-    # compute transitions frequencies
-    tf = markov_trans_freq(seqs)
-    # count ngrams occurrences
-    ngrams = ngram_occurrences(seqs)
-    # ...or chunk strength
-    tf_cs = markov_chunk_strength(seqs)
-    # rewrite seqs with tf
-    tf_seqs = detect_transitions(seqs, tf)
-    # tokenize seqs
-    chunks = chunk_sequences(seqs, tf_seqs, 0.85, orders=[1, 2, 3, 4, 5])
-    chunks_sure = chunk_sequences_only_sure(seqs, tf_seqs)
-    vocab = dict_to_vocab(chunks)
-    detected = chunks_detection(seqs, chunks)
-    #########################################################################
-    # form class
-    segmented = chunks_detection(seqs, chunks, write_fun=chunk_segmentation)
-    fc_seqs = segmented[4]
-    # fc sloow
-    dc = fc.distributional_context(fc_seqs, 5)
-    # print("---- dc ---- ")
-    # pp.pprint(dc)
-    classes = dict()
-    classes["fc"] = fc.form_classes(dc, 1.2)
-    class_patt = fc.classes_patterns(fc_seqs, classes["fc"])
-    classes["sp"] = fc.start_words(classes["fc"], class_patt)
-
-    #########################################################################
-    # write
-    if write_to_file:
-        with open(dir_name + filename + "_mdl.json", "w") as fp:
-            json.dump(mdl, fp, default=serialize_sets)
-        with open(dir_name + filename + "_tf.json", "w") as fp:
-            json.dump(tf, fp)
-        with open(dir_name + filename + "_tf_cs.json", "w") as fp:
-            json.dump(tf_cs, fp)
-        with open(dir_name + filename + "_tf_seqs.json", "w") as fp:
-            json.dump(tf_seqs, fp)
-        with open(dir_name + filename + "_chunks.json", "w") as fp:
-            json.dump(chunks, fp, default=serialize_sets)
-        with open(dir_name + filename + "_chunks_sure.json", "w") as fp:
-            json.dump(chunks_sure, fp, default=serialize_sets)
-        with open(dir_name + filename + "_vocab.json", "w") as fp:
-            json.dump(vocab, fp)
-        with open(dir_name + filename + "_detected.json", "w") as fp:
-            json.dump(detected, fp)
-        with open(dir_name + filename + "_segmented.json", "w") as fp:
-            json.dump(segmented, fp)
-        with open(dir_name + filename + "_ngrams.json", "w") as fp:
-            json.dump(ngrams, fp, )
-        with open(dir_name + filename + "_contexts.json", "w") as fp:
-            json.dump(dc, fp, default=serialize_sets)
-        with open(dir_name + filename + "_form_classes.json", "w") as fp:
-            json.dump(classes, fp, default=serialize_sets)
-        with open(dir_name + filename + "_class_patterns.json", "w") as fp:
-            json.dump(class_patt, fp, default=serialize_sets)
-    return tf, tf_seqs, chunks, vocab, detected, classes, class_patt
+    return tf, min_len
 
 
 def load_model(dir_in):
-    # load models: TPs and form classes
+    # load models: TPs
     with open(dir_in + '/model/tf.json') as fp:
         tff = json.load(fp)
         tf = {int(k): v for k, v in tff.items()}
-    with open(dir_in + '/model/form_classes.json') as fp:
-        fcl = json.load(fp)
-    with open(dir_in + '/model/class_patterns.json') as fp:
-        cpt = json.load(fp)
-    with open(dir_in + '/model/avg_len.json') as fp:
-        al = json.load(fp)
+    with open(dir_in + '/model/start_pool.json') as fp:
+        sp = json.load(fp)
+    with open(dir_in + '/model/min_len.json') as fp:
+        ml = json.load(fp)
 
-    return tf, fcl, cpt, al
-
-
-# # for each sequence calculate markov score/support: ascending with default min value
-def sequences_markov_support_with_min_default(sequences, tps):
-    _MIN = 0.0001  # minimum as a 0-like probability
-    results = []
-    max_ord = max(tps.keys())
-    for seq in sequences:
-        arr_seq = seq.strip(" ").split(" ")
-        res = 1.0
-        for i, ch in enumerate(arr_seq):
-            if i == 0:  # single symbol
-                res = float(tps[0][ch])  # res *= tps[0][ch]
-            else:
-                # set max order limit
-                iord = i if i <= max_ord else max_ord
-                past = " ".join(arr_seq[:i][-iord:])
-                if past in tps[iord].keys():
-                    if ch in tps[iord][past]:
-                        res *= float(tps[iord][past][ch])
-                    else:
-                        # no symbol transition from that past in level
-                        res *= _MIN
-                else:
-                    # no past in level, thus a transition-miss happened in the immediately past step
-                    res *= _MIN
-        results.append(res)
-    return results
+    return tf, sp, ml
 
 
 # for each sequence calculate "markov support" using log: ascending with default min value
@@ -870,43 +719,16 @@ def sequences_markov_support_log(sequences, tps):
     return results
 
 
-def sequences_markov_support_entropy(sequences, tps):
-    _MIN = 0.0001  # minimum as a 0-like probability
-    results = []
-    max_ord = max(tps.keys())
-    for seq in sequences:
-        arr_seq = seq.strip(" ").split(" ")
-        res = 0
-        for i, ch in enumerate(arr_seq):
-            if i == 0:  # single symbol
-                res = - math.log(float(tps[0][ch])) * float(tps[0][ch]) # res *= tps[0][ch]
-            else:
-                # set max order limit
-                iord = i if i <= max_ord else max_ord
-                past = " ".join(arr_seq[:i][-iord:])
-                if past in tps[iord].keys():
-                    if ch in tps[iord][past]:
-                        res += - math.log(float(tps[iord][past][ch])) * float(tps[iord][past][ch])
-                    else:
-                        # no symbol transition from that past in level
-                        res += - math.log(_MIN) * _MIN
-                else:
-                    # no past in level, thus a transition-miss happened in the immediately past step
-                    res += - math.log(_MIN) * _MIN
-        results.append(res/math.log(len(seq)))
-    return results
-
-
 # for each sequence calculate "markov support" with switches: ascending and descending, with weights
 def sequences_markov_support_with_switches(sequences, tps, weights):
     results = []
     max_ord = max(tps.keys())
     for seq in sequences:
         arr_seq = seq.strip(" ").split(" ")
-        res = 1.0
+        res = 0
         for i, sym in enumerate(arr_seq):
             if i == 0:  # single symbol
-                res = float(tps[0][sym])  # res *= tps[0][ch]
+                res = - math.log(float(tps[0][sym]))  # res *= tps[0][ch]
             else:
                 # set max order limit
                 iord = i if i <= max_ord else max_ord
@@ -915,33 +737,10 @@ def sequences_markov_support_with_switches(sequences, tps, weights):
                     iord = iord - 1
                     past = " ".join(arr_seq[:i][-iord:])
                 if iord > 0:
-                    res *= float(weights[iord] * tps[iord][past][sym])
+                    res += - math.log(float(weights[iord] * tps[iord][past][sym]))
                 else:  # single symbol
                     iord = iord - 1
                     past = " ".join(arr_seq[:i][-iord:])
-                    res *= float(weights[0] * tps[0][sym])
+                    res += - math.log(float(weights[0] * tps[0][sym]))
         results.append(res)
-    return results
-
-
-# for each sequence calculate "markov support" for each order: with min value and weights per order
-def sequences_markov_support_per_order(sequences, tps, weights):
-    _MIN = 0.0001  # minimum as a 0-like probability
-    results = dict()
-    for ind,seq in enumerate(sequences):
-        results[ind] = dict()
-        arr_seq = seq.strip(" ").split(" ")
-        for iord in tps.keys():
-            res = 1.0
-            for i,ch in enumerate(arr_seq):
-                if iord == 0:  # single symbol
-                    res = weights[0] * float(tps[0][ch])  # res *= tps[0][ch]
-                else:
-                    if i >= iord:
-                        past = " ".join(arr_seq[:i][-iord:])
-                        if (past in tps[iord].keys()) and (ch in tps[iord][past]):
-                            res *= weights[iord] * float(tps[iord][past][ch])
-                        else:
-                            res *= _MIN
-            results[ind][iord] = res
     return results

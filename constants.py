@@ -2,12 +2,12 @@
 
 # GA
 IND_SIZE = 6
-NGEN = 50  # number of generations
+NGEN = 100  # number of generations
 POP_SIZE = 50  # population size
 N_ELITE = 5
+
 # novelty search
 MAX_ARCH = 5
-NOV_FIT_THRESH = 0.75
 NOV_ARCH_MIN_DISS = 0.5  # for archive assessment
 NOV_T_MIN = 35  # min number of feasible individuals
 NOV_T_MAX = 45  # max number of feasible individuals
@@ -16,5 +16,3 @@ MUTPB = 0.35  # mutation probability
 
 # used for the evaluation
 NUM_SEQS = 50
-
-

@@ -35,15 +35,11 @@ def novelty(individual, population, archive, dissimil_fun=metrics.norm_dissimila
     return nov
 
 
-def archive_assessment(individual, evaluation, archive, dissim_fun=metrics.norm_dissimilarity):
+def archive_assessment(individual, archive, dissim_fun=metrics.norm_dissimilarity):
     arch_len = len(archive)
     # conditions needed to add the individual to the archive
-    if evaluation > constants.NOV_FIT_THRESH:
-        # if the archive has no entries or if the dissimilarity between the
-        # element and the choreographies in the archive is higher than a threshold
-        # arch_dissim =
-        if arch_len == 0 or archive_dissim(individual, archive, dissimil_fun=dissim_fun) > constants.NOV_ARCH_MIN_DISS:
-            archive.append(tuple(individual))
+    if arch_len == 0 or archive_dissim(individual, archive, dissimil_fun=dissim_fun) > constants.NOV_ARCH_MIN_DISS:
+        archive.append(tuple(individual))
 
 ########################################################################
 # novelty on phenotype

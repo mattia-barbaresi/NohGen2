@@ -1,34 +1,24 @@
 from datetime import datetime
 import os
-import random
-from shutil import copyfile
-
-import constants
-import plots
 import utils
-from Parameters import Parameters
-from markov import mkv
+import markov
 
 
-def create(file_name, file_in_sep, random_seed, params):
-    """Generate tps, classes and patterns from sequences in file_in"""
-
-    # set random
-    random.seed(random_seed)
+def create(file_name, file_in_sep):
+    """Generate tps from sequences in file_in"""
 
     # Create target dir if don't exist
-    dir_out = "data/models/" + file_name + "_" + str(random_seed) + "_" +\
-              str(params.mkv_thr) + "_" + str(params.fc_thr) + "_" + str(params.fc_n_ctx) + "_" + str(params.fc_seg_ord) + "/"
+    dir_out = "data/models/" + file_name + "/"
 
     if not os.path.exists(dir_out):
         os.mkdir(dir_out)
     else:
         print("Directory ", dir_out, "already exists")
 
-    # calculate model and form classes
+    # calculate model
     ti = datetime.now()
     sequences = utils.read_from_file("data/" + file_name + ".txt", separator=file_in_sep)
-    tp, tps, cls, ptns = mkv.compute(sequences, params, dir_name=dir_out + "model/")
+    markov.compute(sequences, dir_name=dir_out + "model/")
     print("Model of " + file_name + " computed... time: ", (datetime.now() - ti).total_seconds(), "s.")
 
     # plots.plot_tps(dir_out, tps)
@@ -37,5 +27,4 @@ def create(file_name, file_in_sep, random_seed, params):
 
 
 if __name__ == "__main__":
-    pars = Parameters()
-    create("bicinia", " ", 8, pars)
+    create("bicinia", " ")

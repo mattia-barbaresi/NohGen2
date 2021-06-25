@@ -5,10 +5,8 @@ import fnmatch
 import os
 from datetime import datetime
 import generate_models
-from Parameters import Parameters
 from main import run_ga
 import multiprocessing as mp
-import argparse
 
 
 def _apply_fun(x):
@@ -22,36 +20,15 @@ def main():
     start_time = datetime.now()
 
     seeds = [7]
-    methods = ["multi_log_genotype"]
-    files = [
-        # {"name": "input", "sep": ""},
-        # {"name": "input2", "sep": ""},
-        # {"name": "irish", "sep": " "},
-        {"name": "bicinia", "sep": " "},
-        {"name": "all_irish-notes_and_durations-abc", "sep": " "},
-        {"name": "all_songs_in_G", "sep": ""},  # generated only for seed = 7
-    ]
+    methods = ["multi_log_min", "multi_log_switch"]
+    files = ["input", "input2", "irish", "bicinia", "all_irish-notes_and_durations-abc", "all_songs_in_G",]
 
-    # file name and separator
     for fl in files:
-        # seed for random
         for rs in seeds:
+            for nov_method in methods:
+                data.append([fl, rs, nov_method])
 
-            # # generate input models
-            # for mkv_thr in [0.75,0.85]:
-            #     for fc_thr in [1.0, 1.2]:
-            #         for fc_n_ctx in [3,4,5]:
-            #             for fc_seg_lvl in [2,3,4]:
-            #                 pars = Parameters(mkv_thr, fc_thr, fc_n_ctx, fc_seg_lvl)
-            #                 generate_models.create(fl["name"], fl["sep"], rs, pars)
-
-            # novelty method for each model
-            # read models/README
-            for fn in fnmatch.filter(os.listdir("data/models/"), fl["name"] + "_" + str(rs) + "_*"):
-                for nov_method in methods:
-                    data.append([fn, rs, nov_method])
-    #
-    # # multiprocessing
+    # multiprocessing
     pool.map(_apply_fun, data)
     pool.close()
     pool.join()
