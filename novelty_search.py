@@ -67,8 +67,7 @@ def create_individuals(population, individual_to_compute_novelty, is_archive, si
     for individual_in_population in population:
         # the individual is excluded from the population (is not excluded if there is more than one copy of it
         # the individual is not excluded from the archive
-        if not np.array_equal(individual_to_compute_novelty, individual_in_population) or \
-                (not first) or is_archive:
+        if not np.array_equal(individual_to_compute_novelty, individual_in_population) or (not first) or is_archive:
             new_individual = creator.IndividualTN(individual_in_population)
             new_individual.fitness.values = similarity_fun(individual_to_compute_novelty, new_individual),
             new_population.append(new_individual)

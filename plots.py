@@ -80,7 +80,7 @@ def plot_data(dir_out, ngen, fits, novs, narchs, title):
     par1.set_ylim(0, 1)
     par2.set_ylim(0, max(narchs) + 1)
 
-    host.legend(loc="lower right")
+    host.legend()  # loc="lower right"
 
     host.axis["left"].label.set_color(p1.get_color())
     par1.axis["right"].label.set_color(p2.get_color())

@@ -52,8 +52,6 @@ def run_ga(file_in, random_seed, novelty_method):
     stats["const"]["NGEN"] = constants.NGEN
     stats["const"]["POP_SIZE"] = constants.POP_SIZE
     stats["const"]["N_ELITE"] = constants.N_ELITE
-    stats["const"]["NOV_T_MIN"] = constants.NOV_T_MIN
-    stats["const"]["NOV_T_MAX"] = constants.NOV_T_MAX
 
     # for plot
     fits = []
@@ -139,7 +137,7 @@ def run_ga(file_in, random_seed, novelty_method):
         # new pop
         pop[:] = elite + offspring
         # delete archive duplicates entries
-        archive = list(set(archive))
+        # archive = list(set(archive))
 
         ###################################################################
         # SAVE STATISTICS
@@ -180,7 +178,7 @@ def run_ga(file_in, random_seed, novelty_method):
         bb_stats[i]["seqs"] = markov.generate_with_weights(
             tps=tps, weights=bb, n_seq=constants.NUM_SEQS, occ_per_seq=gen_sequence_length, start_pool=start_pool)
 
-    print("execution endend. utput dir: ", root_out)
+    print("execution endend. output dir: ", dir_out)
     print("time elapsed :", stats["time"], "sec.")
 
     # save generated sequences
@@ -204,4 +202,4 @@ def run_ga(file_in, random_seed, novelty_method):
 
 if __name__ == "__main__":
     # run_ga("input", 43, "multi_log_switches")
-    run_ga("input", 43, "multi_log_min")
+    run_ga("input", 43, "multi_log_switch")
