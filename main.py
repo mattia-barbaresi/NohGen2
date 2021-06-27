@@ -16,9 +16,8 @@ def run_ga(file_in, random_seed, novelty_method):
     # https://numpy.org/doc/1.18/reference/random/parallel.html
     random.seed(random_seed)
     rng = np.random.default_rng(random_seed)
-    # numpy.random.seed(random_seed)
 
-    root_out = "data/out/" + file_in + "/"
+    root_out = "data/out/" + file_in + "_" + str(random_seed) + "/"
     dir_out = root_out + novelty_method + "_" + datetime.now().strftime("%Y%m%d-%H.%M.%S") + "/"
 
     # Create target dir if don't exist
@@ -64,9 +63,9 @@ def run_ga(file_in, random_seed, novelty_method):
     # DEAP
     # toolbox
     toolbox = base.Toolbox()
-    # init DEAP fitness and individual for tournament in novelty search
+    # init DEAP fitness and individual for tournament in novelty search: select best similarity (max)
     if not hasattr(creator, "FitnessMaxTN"):
-        creator.create("FitnessMaxTN", base.Fitness, weights=(-1.0,))
+        creator.create("FitnessMaxTN", base.Fitness, weights=(1.0,))
         creator.create("IndividualTN", list, fitness=creator.FitnessMaxTN)
     # init DEAP fitness and individual
     if not hasattr(creator, "FitnessMax"):
@@ -181,6 +180,7 @@ def run_ga(file_in, random_seed, novelty_method):
         bb_stats[i]["seqs"] = markov.generate_with_weights(
             tps=tps, weights=bb, n_seq=constants.NUM_SEQS, occ_per_seq=gen_sequence_length, start_pool=start_pool)
 
+    print("execution endend. utput dir: ", root_out)
     print("time elapsed :", stats["time"], "sec.")
 
     # save generated sequences
@@ -188,8 +188,11 @@ def run_ga(file_in, random_seed, novelty_method):
         json.dump(bb_stats, fp, default=markov.serialize_sets)
 
     # result for weights progress
+    pop2 = dict()
+    for kk in range(constants.NGEN)[0::10]:
+        pop2[kk] = stats[kk]["pop"]
     with open(dir_out + "pop.json", "w") as fp:
-        json.dump(pop[0::10], fp, default=markov.serialize_sets)
+        json.dump(pop2, fp, default=markov.serialize_sets)
     # save stats
     with open(dir_out + "stats.json", "w") as fp:
         json.dump(stats, fp, default=markov.serialize_sets)
@@ -201,4 +204,4 @@ def run_ga(file_in, random_seed, novelty_method):
 
 if __name__ == "__main__":
     # run_ga("input", 43, "multi_log_switches")
-    run_ga("all_songs_in_G", 43, "multi_log_min")
+    run_ga("input", 43, "multi_log_min")
