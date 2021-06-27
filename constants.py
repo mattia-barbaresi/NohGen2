@@ -3,7 +3,7 @@
 # GA
 IND_SIZE = 6
 NGEN = 100  # number of generations
-POP_SIZE = 50  # population size
+POP_SIZE = 100  # population size
 N_ELITE = 5
 
 # novelty search

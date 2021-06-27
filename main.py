@@ -82,7 +82,7 @@ def run_ga(file_in, random_seed, novelty_method):
     toolbox.register("select", tools.selSPEA2)
 
     # set objective
-    if novelty_method == "multi_log_switches":
+    if novelty_method == "multi_log_switch":
         toolbox.register("evaluateMulti",
                          lambda x: deap_ops.eval_fitness_and_novelty_log_switches(x, tps, start_pool, pop, archive,
                                                                                   gen_sequence_length))
@@ -94,7 +94,6 @@ def run_ga(file_in, random_seed, novelty_method):
     # decorators for normalizing individuals
     toolbox.decorate("mate", deap_ops.normalize_individuals())
     toolbox.decorate("mutate", deap_ops.normalize_individuals())
-
 
     # create the population
     pop = toolbox.population(n=constants.POP_SIZE)
@@ -188,6 +187,9 @@ def run_ga(file_in, random_seed, novelty_method):
     with open(dir_out + "generated.json", "w") as fp:
         json.dump(bb_stats, fp, default=markov.serialize_sets)
 
+    # result for weights progress
+    with open(dir_out + "pop.json", "w") as fp:
+        json.dump(pop[0::10], fp, default=markov.serialize_sets)
     # save stats
     with open(dir_out + "stats.json", "w") as fp:
         json.dump(stats, fp, default=markov.serialize_sets)
@@ -199,4 +201,4 @@ def run_ga(file_in, random_seed, novelty_method):
 
 if __name__ == "__main__":
     # run_ga("input", 43, "multi_log_switches")
-    run_ga("input", 43, "multi_log")
+    run_ga("all_songs_in_G", 43, "multi_log_min")
