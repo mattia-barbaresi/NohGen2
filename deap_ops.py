@@ -1,3 +1,4 @@
+import math
 import random
 
 import constants
@@ -31,7 +32,7 @@ def eval_fitness_and_novelty_log_min(individual, tps, start_pool, population, ar
 
     novelty_search.archive_assessment(individual, archive)
     nov = novelty_search.novelty(individual, population, archive)
-    return fit, nov
+    return fit, -math.log(nov)
 
 
 # on genotype
@@ -42,7 +43,7 @@ def eval_fitness_and_novelty_log_switches(individual, tps, start_pool, populatio
 
     novelty_search.archive_assessment(individual, archive)
     nov = novelty_search.novelty(individual, population, archive)
-    return fit, nov
+    return fit, -math.log(nov)
 
 
 # decorator to normalize individuals

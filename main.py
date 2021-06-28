@@ -46,6 +46,7 @@ def run_ga(file_in, random_seed, novelty_method):
 
     # STATS
     stats = dict()
+    stats["time"] = 0.0
     stats["const"] = dict()
     stats["const"]["file_in"] = file_in
     stats["const"]["gen_sequence_length"] = gen_sequence_length
@@ -150,14 +151,15 @@ def run_ga(file_in, random_seed, novelty_method):
         # save stats
         # in case use copy.deepcopy()
         stats[g]["pop"] = pop[:]
-        stats[g]["fitness"] = res[:]
-        stats[g]["archive"] = archive[:]
+        # stats[g]["fitness"] = res[:]
+
 
     # end ga
 
     ###############################################################
     #                   OUT, PLOTS and GRAPHS
     ###############################################################
+    stats["final_archive"] = archive[:]
     stats["time"] = (datetime.now() - start_time).total_seconds()
 
     pop_plot = {"fits": [], "novs": []}
@@ -168,7 +170,7 @@ def run_ga(file_in, random_seed, novelty_method):
         pop_plot["fits"].append(pb.fitness.values[0])
         pop_plot["novs"].append(pb.fitness.values[1])
 
-    bests = toolbox.select(pop, k=7)
+    bests = toolbox.select(pop, k=5)
     for i,bb in enumerate(bests):
         bb_stats[i] = dict()
         bb_stats[i]["individual"] = bb
@@ -182,7 +184,7 @@ def run_ga(file_in, random_seed, novelty_method):
     print("time elapsed :", stats["time"], "sec.")
 
     # save generated sequences
-    with open(dir_out + "generated.json", "w") as fp:
+    with open(dir_out + "selected.json", "w") as fp:
         json.dump(bb_stats, fp, default=markov.serialize_sets)
 
     # result for weights progress
@@ -201,5 +203,5 @@ def run_ga(file_in, random_seed, novelty_method):
 
 
 if __name__ == "__main__":
-    # run_ga("input", 43, "multi_log_switches")
-    run_ga("input", 43, "multi_log_switch")
+    # run_ga("input", 43, "multi_log_switch")
+    run_ga("input", 43, "multi_log_min")

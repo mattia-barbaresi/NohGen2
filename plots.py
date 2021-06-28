@@ -73,18 +73,18 @@ def plot_data(dir_out, ngen, fits, novs, narchs, title):
     par1.set_ylabel("novelty")
     par2.set_ylabel("# archive")
 
-    p1, = host.plot(range(0, ngen), fits, label="log markov score")
-    p2, = par1.plot(range(0, ngen), novs, label="novelty")
-    p3, = par2.plot(range(0, ngen), narchs, '--', label="# archive")
+    p0, = host.plot(range(0, ngen), fits, label="log markov score")
+    p1, = par1.plot(range(0, ngen), novs, label="novelty")
+    p2, = par2.plot(range(0, ngen), narchs, '--', label="# archive")
 
-    par1.set_ylim(0, 1)
+    par1.set_ylim(0, max(novs) + 1)
     par2.set_ylim(0, max(narchs) + 1)
 
     host.legend()  # loc="lower right"
 
-    host.axis["left"].label.set_color(p1.get_color())
-    par1.axis["right"].label.set_color(p2.get_color())
-    par2.axis["right"].label.set_color(p3.get_color())
+    host.axis["left"].label.set_color(p0.get_color())
+    par1.axis["right"].label.set_color(p1.get_color())
+    par2.axis["right"].label.set_color(p2.get_color())
 
     plt.savefig(dir_out + "results", bbox_inches="tight")
     plt.clf()
