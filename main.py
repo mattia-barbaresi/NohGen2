@@ -20,6 +20,8 @@ def run_ga(file_in, random_seed, novelty_method):
     root_out = "data/out/" + file_in + "_" + str(random_seed) + "/"
     dir_out = root_out + novelty_method + "_" + datetime.now().strftime("%Y%m%d-%H.%M.%S") + "/"
 
+    # print("starting exec. output dir: ", dir_out)
+
     # Create target dir if don't exist
     if not os.path.exists(root_out):
         os.mkdir(root_out)
@@ -68,7 +70,7 @@ def run_ga(file_in, random_seed, novelty_method):
         creator.create("IndividualTN", list, fitness=creator.FitnessMaxTN)
     # init DEAP fitness and individual
     if not hasattr(creator, "FitnessMax"):
-        creator.create("FitnessMax", base.Fitness, weights=(-1.0, 1.0))
+        creator.create("FitnessMax", base.Fitness, weights=(-1.0, -1.0))
         creator.create("Individual", list, fitness=creator.FitnessMax)
     toolbox.register("dirInd", lambda: deap_ops.create_individual(rng))
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.dirInd)
@@ -180,8 +182,7 @@ def run_ga(file_in, random_seed, novelty_method):
         bb_stats[i]["seqs"] = markov.generate_with_weights(
             tps=tps, weights=bb, n_seq=constants.NUM_SEQS, occ_per_seq=gen_sequence_length, start_pool=start_pool)
 
-    print("execution endend. output dir: ", dir_out)
-    print("time elapsed :", stats["time"], "sec.")
+    print("execution ended. output dir:", dir_out, "time elapsed:", stats["time"], "sec.")
 
     # save generated sequences
     with open(dir_out + "selected.json", "w") as fp:
@@ -204,4 +205,4 @@ def run_ga(file_in, random_seed, novelty_method):
 
 if __name__ == "__main__":
     # run_ga("input", 43, "multi_log_switch")
-    run_ga("input", 43, "multi_log_min")
+    run_ga("bicinia", 43, "multi_log_min")
