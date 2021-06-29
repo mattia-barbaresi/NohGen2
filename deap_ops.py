@@ -23,16 +23,12 @@ def gen_sequences(individual, tps, start_pool, gen_seq_len):
         tps=tps, weights=individual, n_seq=constants.NUM_SEQS, occ_per_seq=gen_seq_len, start_pool=start_pool)
 
 
-# on genotype
-def eval_fitness_and_novelty_log_min(individual, tps, start_pool, population, archive, gen_seq_len):
-
+# only first eval
+def eval_fitness(individual, tps, start_pool, gen_seq_len):
     sequences = gen_sequences(individual, tps, start_pool, gen_seq_len)
-    res = markov.sequences_markov_support_log(sequences, tps)
+    res = markov.sequences_markov_support_with_switches(sequences, tps, [1, 1, 1, 1, 1, 1])
     fit = sum(res) / constants.NUM_SEQS
-
-    novelty_search.archive_assessment(individual, archive)
-    nov = novelty_search.novelty(individual, population, archive)
-    return fit, -math.log(nov)
+    return fit
 
 
 # on genotype
@@ -40,8 +36,7 @@ def eval_fitness_and_novelty_log_switches(individual, tps, start_pool, populatio
     sequences = gen_sequences(individual, tps, start_pool, gen_seq_len)
     res = markov.sequences_markov_support_with_switches(sequences, tps, [1, 1, 1, 1, 1, 1])
     fit = sum(res) / constants.NUM_SEQS
-
-    novelty_search.archive_assessment(individual, archive)
+    # novelty_search.archive_assessment(individual, archive)
     nov = novelty_search.novelty(individual, population, archive)
     return fit, -math.log(nov)
 

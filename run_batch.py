@@ -20,8 +20,8 @@ def main():
     start_time = datetime.now()
 
     seeds = [7, 43, 3465]
-    methods = ["multi_log_min", "multi_log_switch"]
-    files = ["irish", "bicinia", "all_irish-notes_and_durations-abc"]
+    methods = ["multi_log_switch"]
+    files = ["irish", "bicinia", "all_irish-notes_and_durations-abc", "all_songs_in_G"]
 
     for fl in files:
         for rs in seeds:

@@ -1,6 +1,7 @@
 import numpy as np
 from deap import creator, tools
 import constants
+import deap_ops
 import metrics
 
 
@@ -37,9 +38,18 @@ def novelty(individual, population, archive, dissimil_fun=metrics.norm_dissimila
 
 def archive_assessment(individual, archive, dissim_fun=metrics.norm_dissimilarity):
     arch_len = len(archive)
+
     # conditions needed to add the individual to the archive
     if arch_len == 0 or archive_dissim(individual, archive, dissimil_fun=dissim_fun) > constants.NOV_ARCH_MIN_DISS:
         archive.append(tuple(individual))
+
+
+def archive_assessment_bestInPop(population, archive, dissim_fun=metrics.norm_dissimilarity):
+    arch_len = len(archive)
+    for individual in population:
+        # conditions needed to add the individual to the archive
+        if arch_len == 0 or archive_dissim(individual, archive, dissimil_fun=dissim_fun) > constants.NOV_ARCH_MIN_DISS:
+            archive.append(tuple(individual))
 
 ########################################################################
 # novelty on phenotype

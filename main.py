@@ -4,6 +4,8 @@ import random
 from datetime import datetime
 import numpy as np
 from deap import base, creator, tools
+
+import novelty_search
 import plots
 import markov
 import deap_ops
@@ -11,7 +13,6 @@ import constants
 
 
 def run_ga(file_in, random_seed, novelty_method):
-
     # set random seed
     # https://numpy.org/doc/1.18/reference/random/parallel.html
     random.seed(random_seed)
@@ -23,13 +24,14 @@ def run_ga(file_in, random_seed, novelty_method):
     # print("starting exec. output dir: ", dir_out)
 
     # Create target dir if don't exist
-    if not os.path.exists(root_out):
-        os.mkdir(root_out)
-    # Create dir_out if don't exist
-    if not os.path.exists(dir_out):
-        os.mkdir(dir_out)
-    else:
-        print("Directory ", dir_out, "already exists")
+    try:
+        if not os.path.exists(root_out):
+            os.mkdir(root_out)
+        # Create dir_out if don't exist
+        if not os.path.exists(dir_out):
+            os.mkdir(dir_out)
+    except OSError as e:
+        print("Directory already exists: ", e)
 
     # read input model
     # for generation and evaluation of individuals
@@ -49,12 +51,17 @@ def run_ga(file_in, random_seed, novelty_method):
     # STATS
     stats = dict()
     stats["time"] = 0.0
+    stats["final_archive"] = []
     stats["const"] = dict()
     stats["const"]["file_in"] = file_in
     stats["const"]["gen_sequence_length"] = gen_sequence_length
     stats["const"]["NGEN"] = constants.NGEN
     stats["const"]["POP_SIZE"] = constants.POP_SIZE
     stats["const"]["N_ELITE"] = constants.N_ELITE
+    stats["const"]["NOV_ARCH_MIN_DISS"] = constants.NOV_ARCH_MIN_DISS
+    stats["const"]["CXPB"] = constants.CXPB
+    stats["const"]["MUTPB"] = constants.MUTPB
+    stats["const"]["NUM_SEQS"] = constants.NUM_SEQS
 
     # for plot
     fits = []
@@ -80,16 +87,11 @@ def run_ga(file_in, random_seed, novelty_method):
     toolbox.register("mutate", tools.mutGaussian, mu=0.0, sigma=0.3, indpb=0.4)
     # selection
     toolbox.register("select", tools.selSPEA2)
-
     # set objective
-    if novelty_method == "multi_log_switch":
-        toolbox.register("evaluateMulti",
-                         lambda x: deap_ops.eval_fitness_and_novelty_log_switches(x, tps, start_pool, pop, archive,
-                                                                                  gen_sequence_length))
-    else:
-        toolbox.register("evaluateMulti",
-                         lambda x: deap_ops.eval_fitness_and_novelty_log_min(x, tps, start_pool, pop, archive,
-                                                                             gen_sequence_length))
+    # if novelty_method == "multi_log_switch":
+    toolbox.register("evaluateMulti",
+                     lambda x: deap_ops.eval_fitness_and_novelty_log_switches(x, tps, start_pool, pop, archive,
+                                                                              gen_sequence_length))
 
     # decorators for normalizing individuals
     toolbox.decorate("mate", deap_ops.normalize_individuals())
@@ -114,6 +116,9 @@ def run_ga(file_in, random_seed, novelty_method):
         # SELECTION
         offspring = list(map(toolbox.clone, toolbox.select(pop, k=constants.POP_SIZE - constants.N_ELITE)))
         elite = list(map(toolbox.clone, offspring[:constants.N_ELITE]))  # Select the elite
+
+        # archive assessment
+        novelty_search.archive_assessment_bestInPop(elite, archive)
 
         random.shuffle(offspring)
 
@@ -155,7 +160,6 @@ def run_ga(file_in, random_seed, novelty_method):
         stats[g]["pop"] = pop[:]
         # stats[g]["fitness"] = res[:]
 
-
     # end ga
 
     ###############################################################
@@ -165,7 +169,7 @@ def run_ga(file_in, random_seed, novelty_method):
     stats["time"] = (datetime.now() - start_time).total_seconds()
 
     pop_plot = {"fits": [], "novs": []}
-    best_plot = {"fits":[], "novs":[]}
+    best_plot = {"fits": [], "novs": []}
     bb_stats = dict()
 
     for pb in pop:
@@ -173,7 +177,7 @@ def run_ga(file_in, random_seed, novelty_method):
         pop_plot["novs"].append(pb.fitness.values[1])
 
     bests = toolbox.select(pop, k=5)
-    for i,bb in enumerate(bests):
+    for i, bb in enumerate(bests):
         bb_stats[i] = dict()
         bb_stats[i]["individual"] = bb
         bb_stats[i]["fit"] = bb.fitness.values
@@ -205,4 +209,4 @@ def run_ga(file_in, random_seed, novelty_method):
 
 if __name__ == "__main__":
     # run_ga("input", 43, "multi_log_switch")
-    run_ga("bicinia", 43, "multi_log_min")
+    run_ga("all_irish-notes_and_durations-abc", 7, "multi_log_switch")
