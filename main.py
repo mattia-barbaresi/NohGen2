@@ -1,10 +1,12 @@
+"""
+Runs a GA: evolves weights used to modulate generation of sequences using the given markov TPs model
+"""
 import json
 import os
 import random
 from datetime import datetime
 import numpy as np
 from deap import base, creator, tools
-
 import novelty_search
 import plots
 import markov
@@ -51,7 +53,6 @@ def run_ga(file_in, random_seed, novelty_method):
     # STATS
     stats = dict()
     stats["time"] = 0.0
-    stats["final_archive"] = []
     stats["const"] = dict()
     stats["const"]["file_in"] = file_in
     stats["const"]["gen_sequence_length"] = gen_sequence_length
@@ -62,6 +63,7 @@ def run_ga(file_in, random_seed, novelty_method):
     stats["const"]["CXPB"] = constants.CXPB
     stats["const"]["MUTPB"] = constants.MUTPB
     stats["const"]["NUM_SEQS"] = constants.NUM_SEQS
+    stats["final_archive"] = []
 
     # for plot
     fits = []
@@ -83,15 +85,15 @@ def run_ga(file_in, random_seed, novelty_method):
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.dirInd)
     # GA operators
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-    toolbox.register("mate", tools.cxUniform, indpb=0.3)
-    toolbox.register("mutate", tools.mutGaussian, mu=0.0, sigma=0.3, indpb=0.4)
+    toolbox.register("mate", tools.cxUniform, indpb=0.4)
+    toolbox.register("mutate", tools.mutGaussian, mu=0.0, sigma=0.3, indpb=0.5)
     # selection
     toolbox.register("select", tools.selSPEA2)
     # set objective
-    # if novelty_method == "multi_log_switch":
+    toolbox.register("evaluate",
+                     lambda x: deap_ops.eval_fitness(x, tps, start_pool, gen_sequence_length))
     toolbox.register("evaluateMulti",
-                     lambda x: deap_ops.eval_fitness_and_novelty_log_switches(x, tps, start_pool, pop, archive,
-                                                                              gen_sequence_length))
+                     lambda x: deap_ops.eval_fitness_and_novelty(x, tps, start_pool, pop, archive, gen_sequence_length))
 
     # decorators for normalizing individuals
     toolbox.decorate("mate", deap_ops.normalize_individuals())
@@ -100,6 +102,12 @@ def run_ga(file_in, random_seed, novelty_method):
     # create the population
     pop = toolbox.population(n=constants.POP_SIZE)
 
+    # starts with fitness
+    eval_function = toolbox.evaluate
+    fit_best = 0
+    max_times = 5
+    fit_last = 0
+
     # generations
     for g in range(constants.NGEN):
 
@@ -107,18 +115,13 @@ def run_ga(file_in, random_seed, novelty_method):
         stats[g] = dict()
 
         # EVALUATION
-        # t1 = datetime.now()
-        # feasible_individuals = 0
-        fit_values = list(map(toolbox.evaluateMulti, pop))
+        fit_values = list(map(eval_function, pop))
         for ind, fit in zip(pop, fit_values):
             ind.fitness.values = fit
 
         # SELECTION
+        elite = list(map(toolbox.clone, toolbox.select(pop, k=constants.N_ELITE)))
         offspring = list(map(toolbox.clone, toolbox.select(pop, k=constants.POP_SIZE - constants.N_ELITE)))
-        elite = list(map(toolbox.clone, offspring[:constants.N_ELITE]))  # Select the elite
-
-        # archive assessment
-        novelty_search.archive_assessment_bestInPop(elite, archive)
 
         random.shuffle(offspring)
 
@@ -138,18 +141,38 @@ def run_ga(file_in, random_seed, novelty_method):
         # Evaluate the individuals with an invalid fitness
         # t2 = datetime.now()
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        values = toolbox.map(toolbox.evaluateMulti, invalid_ind)
+        values = toolbox.map(eval_function, invalid_ind)
         for ind, fit in zip(invalid_ind, values):
             ind.fitness.values = fit
 
-        # new pop
+        # SWITCH FUNCTION
+        fit_prev = fit_best
+        fit_best = tools.selBest(pop,k=1)[0].fitness.values[0]
+        if g > 0:
+            if eval_function == toolbox.evaluate:
+                if 0.95 <= fit_best/fit_prev <= 1.05:  # if they are similar
+                    max_times -= 1
+                    # switch to multi with novelty
+                    if max_times == 0:
+                        max_times = 5
+                        fit_last = fit_best  # last fit calculated with only fitness
+                        eval_function = toolbox.evaluateMulti
+                else:
+                    max_times = 5
+            else:
+                if abs(fit_best - fit_last) >= fit_last/10:
+                    eval_function = toolbox.evaluate
+
+        # archive assessment
+        if eval_function == toolbox.evaluateMulti:
+            novelty_search.archive_assessment_bestInPop(elite, archive)
+
+        # NEW POP
         pop[:] = elite + offspring
         # delete archive duplicates entries
         # archive = list(set(archive))
 
-        ###################################################################
         # SAVE STATISTICS
-
         res = [ind.fitness.values for ind in pop]
         fits.append(sum(x[0] for x in res) / constants.POP_SIZE)
         novs.append(sum(x[1] for x in res) / constants.POP_SIZE)
@@ -176,7 +199,7 @@ def run_ga(file_in, random_seed, novelty_method):
         pop_plot["fits"].append(pb.fitness.values[0])
         pop_plot["novs"].append(pb.fitness.values[1])
 
-    bests = toolbox.select(pop, k=5)
+    bests = toolbox.select(pop, k=10)
     for i, bb in enumerate(bests):
         bb_stats[i] = dict()
         bb_stats[i]["individual"] = bb
@@ -209,4 +232,4 @@ def run_ga(file_in, random_seed, novelty_method):
 
 if __name__ == "__main__":
     # run_ga("input", 43, "multi_log_switch")
-    run_ga("all_irish-notes_and_durations-abc", 7, "multi_log_switch")
+    run_ga("all_irish-notes_and_durations-abc", 43, "multi_log_switch")

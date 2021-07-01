@@ -28,11 +28,11 @@ def eval_fitness(individual, tps, start_pool, gen_seq_len):
     sequences = gen_sequences(individual, tps, start_pool, gen_seq_len)
     res = markov.sequences_markov_support_with_switches(sequences, tps, [1, 1, 1, 1, 1, 1])
     fit = sum(res) / constants.NUM_SEQS
-    return fit
+    return fit, 0
 
 
 # on genotype
-def eval_fitness_and_novelty_log_switches(individual, tps, start_pool, population, archive, gen_seq_len):
+def eval_fitness_and_novelty(individual, tps, start_pool, population, archive, gen_seq_len):
     sequences = gen_sequences(individual, tps, start_pool, gen_seq_len)
     res = markov.sequences_markov_support_with_switches(sequences, tps, [1, 1, 1, 1, 1, 1])
     fit = sum(res) / constants.NUM_SEQS

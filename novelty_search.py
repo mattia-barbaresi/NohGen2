@@ -1,7 +1,6 @@
 import numpy as np
 from deap import creator, tools
 import constants
-import deap_ops
 import metrics
 
 
@@ -10,10 +9,12 @@ import metrics
 def archive_dissim(individual, archive, dissimil_fun=metrics.norm_dissimilarity):
     values = []
     for x in archive:
+        if np.array_equal(individual,x):
+            return 0
         values.append(dissimil_fun(x, individual))
     dissimilarity = 0
     values.sort()
-    # select most similar (= min dissimilarity)
+    # select most similar k neighbours (= min dissimilarity)
     max_len = min(constants.MAX_ARCH, len(archive))
     for i in range(0, max_len):
         dissimilarity = dissimilarity + values[i]
@@ -38,7 +39,6 @@ def novelty(individual, population, archive, dissimil_fun=metrics.norm_dissimila
 
 def archive_assessment(individual, archive, dissim_fun=metrics.norm_dissimilarity):
     arch_len = len(archive)
-
     # conditions needed to add the individual to the archive
     if arch_len == 0 or archive_dissim(individual, archive, dissimil_fun=dissim_fun) > constants.NOV_ARCH_MIN_DISS:
         archive.append(tuple(individual))

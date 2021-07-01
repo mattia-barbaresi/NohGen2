@@ -2,9 +2,9 @@
 
 # GA
 IND_SIZE = 6
-NGEN = 200  # number of generations
+NGEN = 100  # number of generations
 POP_SIZE = 100  # population size
-N_ELITE = 10
+N_ELITE = 5
 
 # novelty search
 MAX_ARCH = 5
@@ -13,4 +13,4 @@ CXPB = 0.5  # crossover probability
 MUTPB = 0.35  # mutation probability
 
 # used for the evaluation
-NUM_SEQS = 50
+NUM_SEQS = 100

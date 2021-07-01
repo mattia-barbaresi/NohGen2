@@ -92,7 +92,7 @@ def plot_data(dir_out, ngen, fits, novs, narchs, title):
 
 
 # plot pareto like
-def plot_pareto(dir_out, pop, bests, title):
+def plot_pareto(dir_out, pop, bests, title, filename=""):
     plt.figure()
     plt.title(title)
     plt.xlabel('novelty')
@@ -101,6 +101,6 @@ def plot_pareto(dir_out, pop, bests, title):
     plt.scatter(bests["novs"], bests["fits"], label="selected", c="red")
     plt.legend()
     # plt.tight_layout()
-    plt.savefig(dir_out + "pareto", bbox_inches="tight")
+    plt.savefig(dir_out + "pareto"+filename, bbox_inches="tight")
     plt.clf()
     plt.close()

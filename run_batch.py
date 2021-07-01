@@ -1,8 +1,6 @@
 """
 Runs multiple GAs on params values
 """
-import fnmatch
-import os
 from datetime import datetime
 import generate_models
 from main import run_ga
@@ -19,7 +17,7 @@ def main():
     pool = mp.Pool(mp.cpu_count()-1)
     start_time = datetime.now()
 
-    seeds = [7, 43, 3465]
+    seeds = [7,11, 43, 99, 100, 131, 3465,]
     methods = ["multi_log_switch"]
     files = ["irish", "bicinia", "all_irish-notes_and_durations-abc", "all_songs_in_G"]
 
