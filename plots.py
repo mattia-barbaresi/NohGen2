@@ -95,8 +95,8 @@ def plot_data(dir_out, ngen, fits, novs, narchs, title):
 def plot_pareto(dir_out, pop, bests, title, filename=""):
     plt.figure()
     plt.title(title)
-    plt.xlabel('novelty')
-    plt.ylabel('log markov score')
+    plt.xlabel('-log novelty')
+    plt.ylabel('-log markov score')
     plt.scatter(pop["novs"], pop["fits"], label="population", c='gray')
     plt.scatter(bests["novs"], bests["fits"], label="selected", c="red")
     plt.legend()
