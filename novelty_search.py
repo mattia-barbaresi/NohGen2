@@ -1,3 +1,4 @@
+import heapq
 import numpy as np
 from deap import creator, tools
 import constants
@@ -9,7 +10,7 @@ import metrics
 def archive_dissim(individual, archive, dissimil_fun=metrics.norm_dissimilarity):
     values = []
     for x in archive:
-        if np.array_equal(individual,x):
+        if np.allclose(individual, x):
             return 0
         values.append(dissimil_fun(x, individual))
     dissimilarity = 0
@@ -23,7 +24,8 @@ def archive_dissim(individual, archive, dissimil_fun=metrics.norm_dissimilarity)
 
 # return novelty value of the individual (default = on genotype)
 # calculated as the dissimilarity from the 4 most similar neighbours from (pop U archive)
-def novelty(individual, population, archive, dissimil_fun=metrics.norm_dissimilarity, simil_fun=metrics.norm_similarity):
+def novelty(individual, population, archive, dissimil_fun=metrics.norm_dissimilarity,
+            simil_fun=metrics.norm_similarity):
     if len(archive) == 0:
         print("- archive with 0 entries!")
 
@@ -36,20 +38,19 @@ def novelty(individual, population, archive, dissimil_fun=metrics.norm_dissimila
     nov = nov / len(pop_selected)
     return nov
 
+#
+# def archive_assessment(individual, archive, dissim_fun=metrics.norm_dissimilarity):
+#     # conditions needed to add the individual to the archive
+#     if len(archive) == 0 or archive_dissim(individual, archive, dissimil_fun=dissim_fun) > constants.NOV_ARCH_MIN_DISS:
+#         archive.append(tuple(individual))
 
-def archive_assessment(individual, archive, dissim_fun=metrics.norm_dissimilarity):
-    arch_len = len(archive)
-    # conditions needed to add the individual to the archive
-    if arch_len == 0 or archive_dissim(individual, archive, dissimil_fun=dissim_fun) > constants.NOV_ARCH_MIN_DISS:
-        archive.append(tuple(individual))
 
-
-def archive_assessment_bestInPop(population, archive, dissim_fun=metrics.norm_dissimilarity):
-    arch_len = len(archive)
+def archive_assessment_best_in_pop(population, archive, dissim_fun=metrics.norm_dissimilarity):
     for individual in population:
         # conditions needed to add the individual to the archive
-        if arch_len == 0 or archive_dissim(individual, archive, dissimil_fun=dissim_fun) > constants.NOV_ARCH_MIN_DISS:
-            archive.append(tuple(individual))
+        if len(archive) == 0 or archive_dissim(individual, archive, dissimil_fun=dissim_fun) > constants.NOV_ARCH_MIN_DISS:
+            archive.append(individual)
+
 
 ########################################################################
 # novelty on phenotype
@@ -74,7 +75,7 @@ def archive_assessment_bestInPop(population, archive, dissim_fun=metrics.norm_di
 def create_individuals(population, individual_to_compute_novelty, similarity_fun):
     new_population = []
     for individual_in_population in population:
-        if not np.array_equal(individual_to_compute_novelty, individual_in_population):
+        if not np.allclose(individual_to_compute_novelty, individual_in_population):
             new_individual = creator.IndividualTN(individual_in_population)
             new_individual.fitness.values = similarity_fun(individual_to_compute_novelty, new_individual),
             new_population.append(new_individual)

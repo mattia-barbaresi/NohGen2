@@ -78,14 +78,14 @@ def run_ga(file_in, random_seed, novelty_method):
         creator.create("FitnessMaxTN", base.Fitness, weights=(1.0,))
         creator.create("IndividualTN", list, fitness=creator.FitnessMaxTN)
     # init DEAP fitness and individual
-    if not hasattr(creator, "FitnessMax"):
-        creator.create("FitnessMax", base.Fitness, weights=(-1.0, -1.0))
-        creator.create("Individual", list, fitness=creator.FitnessMax)
+    if not hasattr(creator, "FitnessMin"):
+        creator.create("FitnessMin", base.Fitness, weights=(-1.0, -1.0))
+        creator.create("Individual", list, fitness=creator.FitnessMin)
     toolbox.register("dirInd", lambda: deap_ops.create_individual(rng))
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.dirInd)
     # GA operators
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-    toolbox.register("mate", tools.cxUniform, indpb=0.4)
+    toolbox.register("mate", tools.cxUniform, indpb=0.35)
     toolbox.register("mutate", tools.mutGaussian, mu=0.0, sigma=0.3, indpb=0.5)
     # selection
     toolbox.register("select", tools.selSPEA2)
@@ -105,7 +105,7 @@ def run_ga(file_in, random_seed, novelty_method):
     # starts with fitness
     eval_function = toolbox.evaluate
     fit_best = 0
-    max_times = 5
+    max_times = constants.MAX_TIMES
     fit_last = 0
 
     # generations
@@ -147,6 +147,7 @@ def run_ga(file_in, random_seed, novelty_method):
 
         # SWITCH FUNCTION
         fit_prev = fit_best
+        # selects the fittest individual in pop (minimum for minimization)
         fit_best = tools.selBest(pop,k=1)[0].fitness.values[0]
         if g > 0:
             if eval_function == toolbox.evaluate:
@@ -154,18 +155,19 @@ def run_ga(file_in, random_seed, novelty_method):
                     max_times -= 1
                     # switch to multi with novelty
                     if max_times == 0:
-                        max_times = 5
+                        max_times = constants.MAX_TIMES
                         fit_last = fit_best  # last fit calculated with only fitness
-                        eval_function = toolbox.evaluateMulti
+                        eval_function = toolbox.evaluateMulti  # switch evaluation method
                 else:
-                    max_times = 5
+                    max_times = constants.MAX_TIMES
             else:
-                if abs(fit_best - fit_last) >= fit_last/10:
+                print("g:",g, "vals:", fit_best, fit_last, "last:",fit_last/15)
+                if abs(fit_last-fit_best) >= fit_last/10:
                     eval_function = toolbox.evaluate
 
         # archive assessment
         if eval_function == toolbox.evaluateMulti:
-            novelty_search.archive_assessment_bestInPop(elite, archive)
+            novelty_search.archive_assessment_best_in_pop(elite, archive)
 
         # NEW POP
         pop[:] = elite + offspring
@@ -232,4 +234,4 @@ def run_ga(file_in, random_seed, novelty_method):
 
 if __name__ == "__main__":
     # run_ga("input", 43, "multi_log_switch")
-    run_ga("all_irish-notes_and_durations-abc", 43, "multi_log_switch")
+    run_ga("all_songs_in_G", 11, "multi_log_switch")
