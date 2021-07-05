@@ -63,6 +63,8 @@ def run_ga(file_in, random_seed, novelty_method):
     stats["const"]["CXPB"] = constants.CXPB
     stats["const"]["MUTPB"] = constants.MUTPB
     stats["const"]["NUM_SEQS"] = constants.NUM_SEQS
+    stats["const"]["MAX_FIT_TIMES"] = constants.MAX_FIT_TIMES
+    stats["const"]["NOV_OFFSET"] = constants.NOV_OFFSET
     stats["final_archive"] = []
 
     # for plot
@@ -105,7 +107,7 @@ def run_ga(file_in, random_seed, novelty_method):
     # starts with fitness
     eval_function = toolbox.evaluate
     fit_best = 0
-    max_times = constants.MAX_TIMES
+    max_times = constants.MAX_FIT_TIMES
     fit_last = 0
 
     # generations
@@ -155,14 +157,13 @@ def run_ga(file_in, random_seed, novelty_method):
                     max_times -= 1
                     # switch to multi with novelty
                     if max_times == 0:
-                        max_times = constants.MAX_TIMES
+                        max_times = constants.MAX_FIT_TIMES
                         fit_last = fit_best  # last fit calculated with only fitness
                         eval_function = toolbox.evaluateMulti  # switch evaluation method
                 else:
-                    max_times = constants.MAX_TIMES
+                    max_times = constants.MAX_FIT_TIMES
             else:
-                print("g:",g, "vals:", fit_best, fit_last, "last:",fit_last/15)
-                if abs(fit_last-fit_best) >= fit_last/10:
+                if abs(fit_last-fit_best) >= (fit_last * constants.NOV_OFFSET):
                     eval_function = toolbox.evaluate
 
         # archive assessment

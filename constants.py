@@ -6,7 +6,9 @@ NGEN = 100  # number of generations
 POP_SIZE = 50  # population size
 N_ELITE = 5
 
-MAX_TIMES = 5
+# adaptive novelty parameters
+MAX_FIT_TIMES = 5
+NOV_OFFSET = 0.05
 
 # novelty search
 MAX_ARCH = 5
