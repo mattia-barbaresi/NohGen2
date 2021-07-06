@@ -147,23 +147,43 @@ def run_ga(file_in, random_seed, novelty_method):
         for ind, fit in zip(invalid_ind, values):
             ind.fitness.values = fit
 
-        # SWITCH FUNCTION
+        # SWITCH FUNCTION MIN
+        # fit_prev = fit_best
+        # # selects the fittest individual in pop (minimum for minimization)
+        # fit_best = tools.selBest(pop,k=1)[0].fitness.values[0]
+        # if g > 0:
+        #     if eval_function == toolbox.evaluate:
+        #         if 0.95 <= fit_best/fit_prev <= 1.05:  # if they are similar
+        #             max_times -= 1
+        #             # switch to multi with novelty
+        #             if max_times == 0:
+        #                 max_times = constants.MAX_FIT_TIMES
+        #                 fit_last = fit_best  # last fit calculated with only fitness
+        #                 eval_function = toolbox.evaluateMulti  # switch evaluation method
+        #         else:
+        #             max_times = constants.MAX_FIT_TIMES
+        #     else:
+        #         if abs(fit_last-fit_best) >= (fit_last * constants.NOV_OFFSET):
+        #             eval_function = toolbox.evaluate
+
+        # SWITCH FUNCTION AVG
         fit_prev = fit_best
         # selects the fittest individual in pop (minimum for minimization)
-        fit_best = tools.selBest(pop,k=1)[0].fitness.values[0]
+        fit_best = tools.selBest(pop, k=1)[0].fitness.values[0]
         if g > 0:
             if eval_function == toolbox.evaluate:
-                if 0.95 <= fit_best/fit_prev <= 1.05:  # if they are similar
+                if 0.95 <= fit_best / fit_prev <= 1.05:  # if they are similar
                     max_times -= 1
                     # switch to multi with novelty
                     if max_times == 0:
                         max_times = constants.MAX_FIT_TIMES
-                        fit_last = fit_best  # last fit calculated with only fitness
+                        avg_last = sum([ind.fitness.values[0] for ind in pop])/constants.POP_SIZE
                         eval_function = toolbox.evaluateMulti  # switch evaluation method
                 else:
                     max_times = constants.MAX_FIT_TIMES
             else:
-                if abs(fit_last-fit_best) >= (fit_last * constants.NOV_OFFSET):
+                avg_best = sum([ind.fitness.values[0] for ind in pop])/constants.POP_SIZE
+                if abs(avg_last - avg_best) >= (avg_last * constants.NOV_OFFSET):
                     eval_function = toolbox.evaluate
 
         # archive assessment
@@ -235,4 +255,4 @@ def run_ga(file_in, random_seed, novelty_method):
 
 if __name__ == "__main__":
     # run_ga("input", 43, "multi_log_switch")
-    run_ga("all_songs_in_G", 11, "multi_log_switch")
+    run_ga("bicinia", 11, "multi_log_switch")
