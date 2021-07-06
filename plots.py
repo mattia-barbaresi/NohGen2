@@ -69,9 +69,16 @@ def plot_data(dir_out, ngen, fits, novs, narchs, title):
 
     host.set_xlabel("ngen")
 
-    host.set_ylabel("log markov score")
-    par1.set_ylabel("novelty")
-    par2.set_ylabel("# archive")
+    host.set_ylabel("-log markov score")
+    par1.set_ylabel("-log novelty")
+    par2.set_ylabel("|archive|")
+
+    # 2) mask points where y > 0.7
+    # novs = np.ma.masked_where(novs > 0,novs)
+
+    # 3) set to NaN where y > 0.7
+    # novsC = novs.copy()
+    # novsC[novs > 0] = np.nan
 
     p0, = host.plot(range(0, ngen), fits, label="log markov score")
     p1, = par1.plot(range(0, ngen), novs, label="novelty")
