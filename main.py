@@ -12,6 +12,7 @@ import plots
 import markov
 import deap_ops
 import constants
+import statistics
 
 
 def run_ga(file_in, random_seed, novelty_method):
@@ -64,13 +65,18 @@ def run_ga(file_in, random_seed, novelty_method):
     stats["const"]["MUTPB"] = constants.MUTPB
     stats["const"]["NUM_SEQS"] = constants.NUM_SEQS
     stats["const"]["MAX_FIT_TIMES"] = constants.MAX_FIT_TIMES
-    stats["const"]["NOV_OFFSET"] = constants.NOV_OFFSET
+    # stats["const"]["NOV_OFFSET"] = constants.NOV_OFFSET
+    stats["const"]["NOV_OFFSET"] = "stdev/2"
     stats["final_archive"] = []
 
     # for plot
     fits = []
     novs = []
+    mins = []
+    maxs = []
     arch_s = []
+    avg_last = 0
+    stdev_last = 0
 
     # DEAP
     # toolbox
@@ -178,12 +184,13 @@ def run_ga(file_in, random_seed, novelty_method):
                     if max_times == 0:
                         max_times = constants.MAX_FIT_TIMES
                         avg_last = sum([ind.fitness.values[0] for ind in pop])/constants.POP_SIZE
+                        stdev_last = statistics.stdev([ind.fitness.values[0] for ind in pop])
                         eval_function = toolbox.evaluateMulti  # switch evaluation method
                 else:
                     max_times = constants.MAX_FIT_TIMES
             else:
                 avg_best = sum([ind.fitness.values[0] for ind in pop])/constants.POP_SIZE
-                if abs(avg_last - avg_best) >= (avg_last * constants.NOV_OFFSET):
+                if abs(avg_last - avg_best) >= stdev_last/2:
                     eval_function = toolbox.evaluate
 
         # archive assessment
@@ -196,9 +203,13 @@ def run_ga(file_in, random_seed, novelty_method):
         # archive = list(set(archive))
 
         # SAVE STATISTICS
-        res = [ind.fitness.values for ind in pop]
-        fits.append(sum(x[0] for x in res) / constants.POP_SIZE)
-        novs.append(sum(x[1] for x in res) / constants.POP_SIZE)
+        # res = [ind.fitness.values for ind in pop]
+        tot_f = [ind.fitness.values[0] for ind in pop]
+        tot_n = [ind.fitness.values[1] for ind in pop]
+        fits.append(sum(tot_f) / constants.POP_SIZE)
+        mins.append(min(tot_f))
+        maxs.append(max(tot_f))
+        novs.append(sum(tot_n) / constants.POP_SIZE)
         arch_s.append(len(archive))
 
         # save stats
@@ -250,9 +261,10 @@ def run_ga(file_in, random_seed, novelty_method):
 
     # plots.plot_fits(dir_out, constants.NGEN, fits, novs, novelty_method)
     plots.plot_data(dir_out, constants.NGEN, fits, novs, arch_s, novelty_method)
+    plots.plot_data2(dir_out, constants.NGEN, fits,mins,maxs, novs, arch_s)
     plots.plot_pareto(dir_out, pop_plot, best_plot, novelty_method)
 
 
 if __name__ == "__main__":
     # run_ga("input", 43, "multi_log_switch")
-    run_ga("bicinia", 11, "multi_log_switch")
+    run_ga("all_irish-notes_and_durations-abc", 11, "multi_log_switch")

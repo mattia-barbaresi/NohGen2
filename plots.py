@@ -1,6 +1,9 @@
+import math
+
 import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits import axisartist
+import matplotlib.colors as mcolors
 from mpl_toolkits.axes_grid1 import host_subplot
 
 
@@ -73,27 +76,83 @@ def plot_data(dir_out, ngen, fits, novs, narchs, title):
     par1.set_ylabel("-log novelty")
     par2.set_ylabel("|archive|")
 
-    # 2) mask points where y > 0.7
-    # novs = np.ma.masked_where(novs > 0,novs)
+    # nan points where novs = 0
+    novs2 = [x if x != 0 else math.nan for x in novs]
 
-    # 3) set to NaN where y > 0.7
-    # novsC = novs.copy()
-    # novsC[novs > 0] = np.nan
+    # other colors:
+    #2b3252
+    #d44e28
+    #2cbcb2
 
-    p0, = host.plot(range(0, ngen), fits, label="log markov score")
-    p1, = par1.plot(range(0, ngen), novs, label="novelty")
-    p2, = par2.plot(range(0, ngen), narchs, '--', label="# archive")
+    p0, = host.plot(range(0, ngen), fits, color='#355c7d', label="log markov score")
+    # p1, = par1.plot(range(0, ngen), novs2, label="novelty")
+    p1 = par1.fill_between(range(0, ngen), novs2, facecolor='#ff7f5c', alpha=0.75, label="novelty")
+    p2, = par2.plot(range(0, ngen), narchs, '--', color='#72cec1', label="# archive")
 
     par1.set_ylim(0, max(novs) + 1)
     par2.set_ylim(0, max(narchs) + 1)
 
-    host.legend()  # loc="lower right"
+    host.legend(loc="lower right")  # loc="lower right"
 
     host.axis["left"].label.set_color(p0.get_color())
-    par1.axis["right"].label.set_color(p1.get_color())
+    par1.axis["right"].label.set_color(mcolors.to_hex(p1.get_facecolor()))
     par2.axis["right"].label.set_color(p2.get_color())
 
     plt.savefig(dir_out + "results", bbox_inches="tight")
+    plt.clf()
+    plt.close()
+
+
+# plot also fitness mins e maxs
+def plot_data2(dir_out, ngen, fits, mins, maxs, novs, narchs):
+    host = host_subplot(111, axes_class=axisartist.Axes)
+    plt.subplots_adjust(right=0.85)
+
+    par1 = host.twinx()
+    par2 = host.twinx()
+
+    new_fixed_axis = par2.get_grid_helper().new_fixed_axis
+    par1.axis["right"] = new_fixed_axis(loc="right", axes=par1,
+                                        offset=(10, 0))
+    par2.axis["right"] = new_fixed_axis(loc="right", axes=par2,
+                                        offset=(70, 0))
+
+    par2.axis["right"].toggle(all=True)
+
+    tl = par2.xaxis.majorTicks[0].tick1line.get_markersize()
+    host.set_xlim(0, ngen+1)
+    host.set_ylim(0, max(maxs) + tl)
+
+    host.set_xlabel("ngen")
+
+    host.set_ylabel("-log markov score")
+    par1.set_ylabel("-log novelty")
+    par2.set_ylabel("|archive|")
+
+    # nan points where novs = 0
+    novs2 = [x if x != 0 else math.nan for x in novs]
+
+    # other colors:
+    #2b3252
+    #d44e28
+    #2cbcb2
+
+    p0, = host.plot(range(0, ngen), fits, color='#355c7d', label="log markov score")
+    host.fill_between(range(0, ngen),mins, maxs, facecolor='#355c7d', alpha=0.25)
+
+    p1 = par1.fill_between(range(0, ngen), novs2, facecolor='#ff7f5c', alpha=0.75, label="novelty")
+    p2, = par2.plot(range(0, ngen), narchs, '--', color='#72cec1', label="# archive")
+
+    par1.set_ylim(0, max(novs) + 1)
+    par2.set_ylim(0, max(narchs) + 1)
+
+    host.legend(loc="lower right")  # loc="lower right"
+
+    host.axis["left"].label.set_color(p0.get_color())
+    par1.axis["right"].label.set_color(mcolors.to_hex(p1.get_facecolor()))
+    par2.axis["right"].label.set_color(p2.get_color())
+
+    plt.savefig(dir_out + "results2", bbox_inches="tight")
     plt.clf()
     plt.close()
 
