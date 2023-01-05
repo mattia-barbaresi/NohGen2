@@ -1,2 +1,2 @@
 # NohGen2
-Generator of choreographies for Nao robot, using n-th order Markov models and evolutionary computation
+Generator of symbolic sequences (choreographies for Nao robot or music), using n-th order Markov models and evolutionary computation
